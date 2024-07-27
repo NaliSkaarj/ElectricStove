@@ -1,0 +1,2 @@
+# ElectricStove
+Computerized furnace control.
