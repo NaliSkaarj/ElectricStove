@@ -3874,6 +3874,23 @@ void TFT_eSPI::pushColors(uint16_t *data, uint32_t len, bool swap)
 
 
 /***************************************************************************************
+** Function name:           myPushColors
+** Description:             push an array of pixels, for image drawing
+** Author:                  Bishop
+***************************************************************************************/
+void TFT_eSPI::myPushColors(uint8_t *data, uint32_t len, bool swap)
+{
+  begin_tft_write();
+  if (swap) {swap = _swapBytes; _swapBytes = true; }
+
+  myPushPixels(data, len);
+
+  _swapBytes = swap; // Restore old value
+  end_tft_write();
+}
+
+
+/***************************************************************************************
 ** Function name:           drawLine
 ** Description:             draw a line between 2 arbitrary points
 ***************************************************************************************/

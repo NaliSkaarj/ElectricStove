@@ -494,6 +494,7 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
            // Push (aka write pixel) colours to the TFT (use setAddrWindow() first)
   void     pushColor(uint16_t color, uint32_t len),  // Deprecated, use pushBlock()
            pushColors(uint16_t  *data, uint32_t len, bool swap = true), // With byte swap option
+           myPushColors(uint8_t *data, uint32_t len, bool swap = true), // custom function for faster byte sending over spi.transfer()
            pushColors(uint8_t  *data, uint32_t len); // Deprecated, use pushPixels()
 
            // Write a solid block of a single colour
@@ -501,6 +502,7 @@ class TFT_eSPI : public Print { friend class TFT_eSprite; // Sprite class has ac
 
            // Write a set of pixels stored in memory, use setSwapBytes(true/false) function to correct endianess
   void     pushPixels(const void * data_in, uint32_t len);
+  void     myPushPixels(const void * data_in, uint32_t len);  // custom function for farster data sending
 
            // Support for half duplex (bi-directional SDA) SPI bus where MOSI must be switched to input
            #ifdef TFT_SDA_READ

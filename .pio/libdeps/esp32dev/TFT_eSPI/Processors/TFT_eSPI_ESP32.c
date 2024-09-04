@@ -501,6 +501,16 @@ void TFT_eSPI::pushPixels(const void* data_in, uint32_t len){
 }
 
 /***************************************************************************************
+** Function name:           myPushPixels - for ESP32 and 3 byte RGB display
+** Description:             Write a sequence of pixels
+***************************************************************************************/
+void TFT_eSPI::myPushPixels(const void* data_in, uint32_t len){
+
+  uint8_t *data = (uint8_t*)data_in;
+  spi.writeBytes( (uint8_t *)data_in, len );
+}
+
+/***************************************************************************************
 ** Function name:           pushSwapBytePixels - for ESP32 and 3 byte RGB display
 ** Description:             Write a sequence of pixels with swapped bytes
 ***************************************************************************************/
