@@ -1,2 +1,3 @@
-lvgl/lvgl@9.2.0
 bodmer/TFT_eSPI@2.5.43
+br3ttb/PID@1.2.1
+lvgl/lvgl@9.2.0

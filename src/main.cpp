@@ -1,6 +1,9 @@
 #include <Arduino.h>
 #include "TFT_eSPI.h"
 #include "lvgl.h"
+#include "PID.h"
+
+// extern double input, output;   // testing PID module
 
 uint16_t x, y;
 bool color = true;
@@ -43,13 +46,14 @@ void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * data )
   }
 }
 
-void myTimerCallback( xTimerHandle pxTimer )
+void myTimerCallback( xTimerHandle pxTimer ) 
 {
   lv_tabview_set_active( tabview, 1, LV_ANIM_OFF );
   Serial.println( "Timer callback function executed" );
 }
 
 void setup() {
+  // input = 20;
   Serial.begin( 115200 );
 
   uint16_t calData[5] = { 265, 3677, 261, 3552, 1 };
@@ -124,6 +128,12 @@ void setup() {
   xTimerHandle xTimer = xTimerCreate( "myTimer", 2000, pdFALSE, NULL, myTimerCallback );
   xTimerStart( xTimer, 1000 );
 
+
+  // init PID
+  PID_Init();
+  PID_SetPoint( 100 );
+  PID_On();
+
   currentTime = next1S = next10mS = millis();
 }
 
@@ -135,11 +145,20 @@ void loop() {
     lv_timer_handler();
     lv_tick_inc( 10 );
     next10mS += 10;
+    PID_Compute();
   }
 
   // handle stuff every 1 second
   if( currentTime >= next1S ) {
     Serial.print( "." );
     next1S += 1000;
+
+    // for testing PID module
+    // if( input < 100 ) {
+    //   input++;
+    // }
+    // Serial.print( input );
+    // Serial.print( ": " );
+    // Serial.println( output );
   }
 }
