@@ -210,14 +210,6 @@ void logSDCard() {
 void loop() {
   currentTime = millis();
 
-  Serial.println( MISO );
-  Serial.println( MOSI );
-  Serial.println( SCK );
-  Serial.println( SS );
-while(1){
-  logSDCard();
-  delay(10000);
-}
   // handle stuff every 10 miliseconds
   if( currentTime >= next10mS ) {
     lv_timer_handler();
@@ -238,5 +230,6 @@ while(1){
     // Serial.print( input );
     // Serial.print( ": " );
     // Serial.println( output );
+    logSDCard();
   }
 }
