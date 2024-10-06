@@ -2,8 +2,13 @@
 #include "TFT_eSPI.h"
 #include "lvgl.h"
 #include "PID.h"
+#include "SD.h"
+#include "FS.h"
 
 // extern double input, output;   // testing PID module
+#define SD_CS 16
+String dataMessage;
+void writeFile(fs::FS &fs, const char * path, const char * message);
 
 uint16_t x, y;
 bool color = true;
@@ -135,11 +140,84 @@ void setup() {
   PID_On();
 
   currentTime = next1S = next10mS = millis();
+
+  // Initialize SD card
+  SD.begin( SD_CS );  
+  if( !SD.begin( SD_CS ) ) {
+    Serial.println( "Card Mount Failed" );
+    return;
+  }
+  uint8_t cardType = SD.cardType();
+  if( cardType == CARD_NONE ) {
+    Serial.println( "No SD card attached" );
+    return;
+  }
+  // If the data.txt file doesn't exist
+  // Create a file on the SD card and write the data labels
+  File file = SD.open("/data.txt");
+  if(!file) {
+    Serial.println("File doens't exist");
+    Serial.println("Creating file...");
+    writeFile(SD, "/data.txt", "Reading ID, Date, Hour, Temperature \r\n");
+  }
+  else {
+    Serial.println("File already exists");  
+  }
+  file.close();
+}
+
+// Write to the SD card (DON'T MODIFY THIS FUNCTION)
+void writeFile(fs::FS &fs, const char * path, const char * message) {
+  Serial.printf("Writing file: %s\n", path);
+
+  File file = fs.open(path, FILE_WRITE);
+  if(!file) {
+    Serial.println("Failed to open file for writing");
+    return;
+  }
+  if(file.print(message)) {
+    Serial.println("File written");
+  } else {
+    Serial.println("Write failed");
+  }
+  file.close();
+}
+
+// Append data to the SD card (DON'T MODIFY THIS FUNCTION)
+void appendFile(fs::FS &fs, const char * path, const char * message) {
+  Serial.printf("Appending to file: %s\n", path);
+
+  File file = fs.open(path, FILE_APPEND);
+  if(!file) {
+    Serial.println("Failed to open file for appending");
+    return;
+  }
+  if(file.print(message)) {
+    Serial.println("Message appended");
+  } else {
+    Serial.println("Append failed");
+  }
+  file.close();
+}
+
+void logSDCard() {
+  dataMessage = String(12) + "," + String(34) + "," + String(56) + "," + String(78) + "\r\n";
+  Serial.print( "Save data: " );
+  Serial.println( dataMessage );
+  appendFile( SD, "/data.txt", dataMessage.c_str() );
 }
 
 void loop() {
   currentTime = millis();
 
+  Serial.println( MISO );
+  Serial.println( MOSI );
+  Serial.println( SCK );
+  Serial.println( SS );
+while(1){
+  logSDCard();
+  delay(10000);
+}
   // handle stuff every 10 miliseconds
   if( currentTime >= next10mS ) {
     lv_timer_handler();
