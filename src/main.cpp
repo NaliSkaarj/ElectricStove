@@ -6,7 +6,7 @@
 #include "FS.h"
 
 // extern double input, output;   // testing PID module
-#define SD_CS 16
+#define SD_CS 34
 String dataMessage;
 void writeFile(fs::FS &fs, const char * path, const char * message);
 
