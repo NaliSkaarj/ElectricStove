@@ -13,6 +13,7 @@ static double Kp=70, Ki=0.1, Kd=1000;   //CDHW methode from [https://newton.ex.a
 PID myPID( &input, &output, &setPoint, Kp, Ki, Kd, DIRECT );
 
 void PID_Init() {
+  pinMode( PID_PIN_RELAY, OUTPUT );
   isOn = false;
   windowStartTime = millis();
   setPoint = 20;
