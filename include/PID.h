@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define PID_PIN_INPUT           0
-#define PID_PIN_RELAY           3
+#define PID_PIN_RELAY           35
 #define PID_WINDOW_SIZE         8000
 #define PID_DEADTIME_SIZE       2000
 #define PID_INTERVAL_COMPUTE    10  // the period (in ms) at which the calculation is performed
