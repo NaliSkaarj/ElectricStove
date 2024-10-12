@@ -4,9 +4,16 @@
 #include "PID.h"
 #include "SD.h"
 #include "FS.h"
+#include "max6675.h"
 
 // extern double input, output;   // testing PID module
 #define SD_CS 34
+#define MAX6675_MISO  TFT_MISO
+#define MAX6675_CLK   TFT_SCLK
+#define MAX6675_CS    35
+// int maxSO = 39;
+// int ktcCS = 35;
+// int ktcCLK = 18;
 String dataMessage;
 void writeFile(fs::FS &fs, const char * path, const char * message);
 
@@ -16,6 +23,7 @@ unsigned long currentTime, next1S, next10mS;
 lv_obj_t * slider_label;
 lv_obj_t * tabview;
 
+MAX6675 thermocouple( MAX6675_CLK, MAX6675_CS, MAX6675_MISO );
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
 
@@ -231,5 +239,7 @@ void loop() {
     // Serial.print( ": " );
     // Serial.println( output );
     logSDCard();
+    Serial.print( "C = " ); 
+    Serial.println( thermocouple.readCelsius() );
   }
 }
