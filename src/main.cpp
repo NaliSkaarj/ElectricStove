@@ -3,12 +3,13 @@
 #include "lvgl.h"
 #include "PID.h"
 #include "myOTA.h"
+#include "buzzer.h"
 
 // extern double input, output;   // testing PID module
 
 uint16_t x, y;
 bool color = true;
-unsigned long currentTime, next1S, next10mS;
+unsigned long currentTime, next10S, next1S, next10mS;
 lv_obj_t * slider_label;
 lv_obj_t * tabview;
 
@@ -51,6 +52,7 @@ void myTimerCallback( xTimerHandle pxTimer )
 {
   lv_tabview_set_active( tabview, 1, LV_ANIM_OFF );
   Serial.println( "Timer callback function executed" );
+  BUZZ_Add( 2000, 1000, 500, 5 );
 }
 
 void setup() {
@@ -126,8 +128,8 @@ void setup() {
   lv_obj_remove_flag( lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE );
 
   // test some features
-  xTimerHandle xTimer = xTimerCreate( "myTimer", 2000, pdFALSE, NULL, myTimerCallback );
-  xTimerStart( xTimer, 1000 );
+  xTimerHandle xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
+  xTimerStart( xTimer, 5000 );
 
 
   // init PID
@@ -135,14 +137,15 @@ void setup() {
   PID_SetPoint( 100 );
   PID_On();
 
-  currentTime = next1S = next10mS = millis();
-
+  currentTime = next10S = next1S = next10mS = millis();
+  BUZZ_Init( currentTime );
   OTA_Setup();
 }
 
 void loop() {
   OTA_Handle();
   currentTime = millis();
+  BUZZ_Handle( currentTime );
 
   // handle stuff every 10 miliseconds
   if( currentTime >= next10mS ) {
@@ -165,5 +168,11 @@ void loop() {
     // Serial.print( input );
     // Serial.print( ": " );
     // Serial.println( output );
+  }
+
+  // handle stuff every 10 second
+  if( currentTime >= next10S ) {
+    next10S += 10000;
+    BUZZ_Add( 100 );
   }
 }
