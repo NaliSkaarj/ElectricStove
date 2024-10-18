@@ -5,6 +5,7 @@
 #include "myOTA.h"
 
 // extern double input, output;   // testing PID module
+#define BUZZ_PIN 32
 
 uint16_t x, y;
 bool color = true;
@@ -165,5 +166,9 @@ void loop() {
     // Serial.print( input );
     // Serial.print( ": " );
     // Serial.println( output );
+    
+    digitalWrite( BUZZ_PIN, HIGH );
+    delay( 100 );
+    digitalWrite( BUZZ_PIN, LOW );
   }
 }
