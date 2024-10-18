@@ -5,7 +5,7 @@
 #include "myOTA.h"
 
 // extern double input, output;   // testing PID module
-#define BUZZ_PIN 32
+#define BUZZ_PIN 36
 
 uint16_t x, y;
 bool color = true;
