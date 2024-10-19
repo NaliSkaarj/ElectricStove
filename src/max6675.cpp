@@ -2,6 +2,7 @@
 // https://learn.adafruit.com/thermocouple/
 
 #include "max6675.h"
+#include "SPI.h"
 
 /**************************************************************************/
 /*!
@@ -37,9 +38,12 @@ float MAX6675::readCelsius(void) {
   digitalWrite(cs, LOW);
   delayMicroseconds(10);
 
-  v = spiread();
+  v = SPI.transfer( 0x00 );
   v <<= 8;
-  v |= spiread();
+  v |= SPI.transfer( 0x00 );
+//   v = spiread();
+//   v <<= 8;
+//   v |= spiread();
 
   digitalWrite(cs, HIGH);
 
