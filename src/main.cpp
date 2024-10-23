@@ -10,7 +10,7 @@
 #define SD_CS 34
 #define MAX6675_MISO  TFT_MISO
 #define MAX6675_CLK   TFT_SCLK
-#define MAX6675_CS    35
+#define MAX6675_CS    9
 
 uint16_t x, y;
 bool color = true;
