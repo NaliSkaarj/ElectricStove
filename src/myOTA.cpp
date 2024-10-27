@@ -12,6 +12,10 @@ void OTA_LogWrite( const char *buf ) {
   }
 }
 
+void OTA_LogWrite( const int x ) {
+  OTA_LogWrite( ((String)x).c_str() );
+}
+
 void OTA_Setup() {
   ArduinoOTA.setHostname( OTA_HOST_NAME );
   Serial.println( "OTA setup" );

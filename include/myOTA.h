@@ -18,5 +18,6 @@ void OTA_Handle();
  * Send log to client (connected over telnet)
  */
 void OTA_LogWrite( const char *buf );
+void OTA_LogWrite( const int x );
 
 #endif  // MYOTA_H
