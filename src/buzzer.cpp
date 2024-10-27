@@ -72,12 +72,17 @@ void BUZZ_Handle( unsigned long currentTime ) {
     return;
   }
 
+  if( globalTime == currentTime ) {
+    // nothing to do
+    return;
+  }
   globalTime = currentTime;
 
   for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
     // check against 'buzzing' activation
     if( ( globalTime >= buzzerList[ x ].start )
       && ( globalTime < (buzzerList[ x ].start + buzzerList[ x ].period) )
+      && ( true == buzzerList[ x ].active )
     ) {
       activateBuzzing = true;
     }
@@ -124,7 +129,7 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   buzzerList[ freeSlotIdx ].start = globalTime + startDelay;
   buzzerList[ freeSlotIdx ].period = period;
   buzzerList[ freeSlotIdx ].repeatDelay = repeatDelay;
-  buzzerList[ freeSlotIdx ].repeatCount = repeat;
+  buzzerList[ freeSlotIdx ].repeatCount = repeat ? repeat-1 : 0;   // repeat only repeat-1 times (one is by default thus -1)
   buzzerList[ freeSlotIdx ].active = true;
 
   return 0;
