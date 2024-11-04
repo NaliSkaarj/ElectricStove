@@ -138,14 +138,13 @@ void setup() {
   PID_On();
 
   currentTime = next10S = next1S = next10mS = millis();
-  BUZZ_Init( currentTime );
+  BUZZ_Init();
   OTA_Setup();
 }
 
 void loop() {
   OTA_Handle();
   currentTime = millis();
-  BUZZ_Handle( currentTime );
 
   // handle stuff every 10 miliseconds
   if( currentTime >= next10mS ) {

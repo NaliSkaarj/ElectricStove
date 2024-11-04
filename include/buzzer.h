@@ -1,20 +1,15 @@
 #ifndef BUZZER_H
 #define BUZZER_H
 
-#define BUZZ_OUTPUT_PIN     33
-#define BUZZ_BUZZERS_MAX    10
+#define BUZZ_OUTPUT_PIN         33
+#define BUZZ_BUZZERS_MAX        10
+#define BUZZER_STACK_SIZE       700 // number of words (at 700 seemes to be OK, @600 it often reset itself mainly by WDT)
+#define BUZZER_TASK_PRIORITY    3
 
 /**
  * Need to be called from main Setup/Init function to run the service
- * currentTime  -   current time [milliseconds]
  */
-void BUZZ_Init( unsigned long currentTime );
-
-/**
- * Need to be called in superloop() to run the service
- * currentTime  -   current time [milliseconds]
- */
-void BUZZ_Handle( unsigned long currentTime );
+void BUZZ_Init( void );
 
 /**
  * Add 'buzzing' to the list, it will be triggered according to provided parameters

@@ -12,23 +12,31 @@ typedef struct buzzer
   bool            active;
 } Buzzer_t;
 
-static Buzzer_t         buzzerList[ BUZZ_BUZZERS_MAX ];   // guarded by mutex
-static unsigned int     idx;
-static unsigned long    globalTime;
-static bool             initialized = false;
-static SemaphoreHandle_t xSemaphore = NULL;
-static StaticSemaphore_t xMutexBuffer;
-static uint32_t         failSemaphoreCounter = 0;   // debug purpose only
-static bool buzzHandleForce = false;
+static Buzzer_t           buzzerList[ BUZZ_BUZZERS_MAX ];   // guarded by mutex
+static unsigned int       idx;
+static unsigned long      globalTime;
+static bool               initialized = false;
+static SemaphoreHandle_t  xSemaphore = NULL;
+static StaticSemaphore_t  xMutexBuffer;
+static uint32_t           failSemaphoreCounter = 0;   // debug purpose only
+static bool               buzzHandleForce = false;
+static TaskHandle_t       taskHandle = NULL;
+static StaticTask_t       taskTCB;
+static StackType_t        taskStack[ BUZZER_STACK_SIZE ];
+
+static unsigned int getNextHash();
+static int getFreeSlotIndex();
+static void vTaskBuzzer( void * pvParameters );
+static void buzzerHandle( unsigned long currentTime );
 
 static unsigned int getNextHash() {
   unsigned int tmpHash = 0;
 
   if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, ( TickType_t )(100/portTICK_PERIOD_MS) ) ) {
-      for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
-        if( buzzerList[x].hash > tmpHash ) {
-          tmpHash = buzzerList[x].hash;
+    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+      for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
+        if( buzzerList[ x ].hash > tmpHash ) {
+          tmpHash = buzzerList[ x ].hash;
         }
       }
 
@@ -51,8 +59,8 @@ static int getFreeSlotIndex() {
   int freeSlotIdx = -1;
 
   if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, ( TickType_t )(100/portTICK_PERIOD_MS) ) ) {
-      for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
+    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+      for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
         if( (0 == buzzerList[ x ].hash) || (false == buzzerList[ x ].active) ) {
           freeSlotIdx = x;
           break;
@@ -74,32 +82,15 @@ static int getFreeSlotIndex() {
   return freeSlotIdx;
 }
 
-void BUZZ_Init( unsigned long currentTime ) {
-  if( initialized ) {
-    return;
+static void vTaskBuzzer( void * pvParameters ) {
+  while( 1 ) {
+    buzzerHandle( millis() );
+    vTaskDelay( 1 / portTICK_PERIOD_MS );
   }
-
-  globalTime = currentTime;
-
-  pinMode( BUZZ_OUTPUT_PIN, OUTPUT );
-  digitalWrite( BUZZ_OUTPUT_PIN, LOW );
-
-  for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
-    buzzerList[ x ].hash = 0;
-    buzzerList[ x ].start = 0;
-    buzzerList[ x ].period = 0;
-    buzzerList[ x ].repeatDelay = 0;
-    buzzerList[ x ].repeatCount = 0;
-    buzzerList[ x ].active = false;
-  }
-
-  xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
-
-  initialized = true;
 }
 
-void BUZZ_Handle( unsigned long currentTime ) {
-  bool activateBuzzing = false;
+static void buzzerHandle( unsigned long currentTime ) {
+  uint8_t activateBuzzing = LOW;
 
   if( false == initialized ) {
     return;
@@ -108,25 +99,26 @@ void BUZZ_Handle( unsigned long currentTime ) {
   if( globalTime == currentTime
     && !buzzHandleForce
   ) {
-    // nothing to do
+    // no change in time, nothing to do
     return;
   }
+
   globalTime = currentTime;
   buzzHandleForce = false;
 
   if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, ( TickType_t )(100/portTICK_PERIOD_MS) ) ) {
-      for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
+    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+      for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
         // check against 'buzzing' activation
         if( ( globalTime >= buzzerList[ x ].start )
-          && ( globalTime < (buzzerList[ x ].start + buzzerList[ x ].period) )
+          && ( globalTime < ( buzzerList[ x ].start + buzzerList[ x ].period ) )
           && ( true == buzzerList[ x ].active )
         ) {
-          activateBuzzing = true;
+          activateBuzzing = HIGH;
         }
 
         // check against 'buzzing' deactivation
-        if( globalTime >= (buzzerList[ x ].start + buzzerList[ x ].period) ) {
+        if( globalTime >= ( buzzerList[ x ].start + buzzerList[ x ].period ) ) {
           if( 0 < buzzerList[ x ].repeatCount ) {
             buzzerList[ x ].start = buzzerList[ x ].start + buzzerList[ x ].period + buzzerList[ x ].repeatDelay;
             buzzerList[ x ].repeatCount--;
@@ -148,11 +140,38 @@ void BUZZ_Handle( unsigned long currentTime ) {
     return;
   }
 
-  if( activateBuzzing ) {
-    digitalWrite( BUZZ_OUTPUT_PIN, HIGH );
-  } else {
-    digitalWrite( BUZZ_OUTPUT_PIN, LOW );
+  digitalWrite( BUZZ_OUTPUT_PIN, activateBuzzing );
+}
+
+void BUZZ_Init( void ) {
+  if( initialized ) {
+    return;
   }
+
+  taskHandle = xTaskCreateStatic( vTaskBuzzer, "Buzzer", BUZZER_STACK_SIZE, NULL, BUZZER_TASK_PRIORITY, taskStack, &taskTCB );
+
+  if( NULL == taskHandle ) {
+    Serial.println( "BUZZER: Task couldn't be created" );
+    return;
+  }
+
+  globalTime = millis();
+
+  pinMode( BUZZ_OUTPUT_PIN, OUTPUT );
+  digitalWrite( BUZZ_OUTPUT_PIN, LOW );
+
+  for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
+    buzzerList[ x ].hash = 0;
+    buzzerList[ x ].start = 0;
+    buzzerList[ x ].period = 0;
+    buzzerList[ x ].repeatDelay = 0;
+    buzzerList[ x ].repeatCount = 0;
+    buzzerList[ x ].active = false;
+  }
+
+  xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
+
+  initialized = true;
 }
 
 unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned long repeatDelay, int repeat ) {
@@ -175,7 +194,7 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   }
 
   if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, ( TickType_t )(100/portTICK_PERIOD_MS) ) ) {
+    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
       buzzerList[ freeSlotIdx ].hash = highestHash;
       buzzerList[ freeSlotIdx ].start = globalTime + startDelay;
       buzzerList[ freeSlotIdx ].period = period;
@@ -196,7 +215,7 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   }
 
   buzzHandleForce = true;
-  BUZZ_Handle( globalTime );  // force activating buzzer (if needed)
+  buzzerHandle( globalTime );  // force activating buzzer (if needed)
 
   return 0;
 }
@@ -217,14 +236,14 @@ bool BUZZ_Delete( int handle ) {
   }
 
   if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, ( TickType_t )(100/portTICK_PERIOD_MS) ) ) {
-      for( int x=0; x<BUZZ_BUZZERS_MAX; x++) {
+    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+      for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
         if( handle == buzzerList[ x ].hash ) {
           buzzerList[ x ].hash = 0;
           buzzerList[ x ].active = false;
           retValue = true;
           buzzHandleForce = true;
-          BUZZ_Handle( globalTime );  // recalculate list of 'buzzings'
+          buzzerHandle( globalTime );  // recalculate list of 'buzzings'
           break;
         }
       }
