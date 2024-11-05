@@ -2,9 +2,11 @@
 #include "TFT_eSPI.h"
 #include "lvgl.h"
 
-lv_obj_t * slider_label;
-lv_obj_t * tabview;
-static lv_style_t styleTabs;
+static lv_obj_t * tabView;    // main container for 3 tabs
+static lv_style_t styleTabs;  // has impact on tabs icons size
+static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
+static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
+static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -41,68 +43,83 @@ static void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * dat
   }
 }
 
-static void setContentHome( lv_obj_t *tab ) {
-  lv_obj_set_style_bg_color( tab, {0xff, 0x00, 0x00}, 0 ); // red
-  lv_obj_set_style_bg_opa( tab, LV_OPA_COVER, 0 );
+static void setContentHome() {
+  static lv_style_t styleTabHome;
+
+  lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, 0 ); // red
+  lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, 0 );
 
   /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tab );
+  lv_obj_t * label = lv_label_create( tabHome );
   lv_label_set_text( label, "First tab" );
+
+  // font size & etc
+  lv_style_init( &styleTabHome );
+  lv_style_set_text_decor( &styleTabHome, LV_TEXT_DECOR_NONE );
+  lv_style_set_text_font( &styleTabHome, &lv_font_montserrat_16 );
+  lv_obj_add_style( tabHome, &styleTabHome, 0 );
 }
 
-static void setContentList( lv_obj_t *tab ) {
-  lv_obj_set_style_bg_color( tab, {0x00, 0xff, 0x00}, 0 ); // green
-  lv_obj_set_style_bg_opa( tab, LV_OPA_COVER, 0 );
+static void setContentList() {
+  static lv_style_t styleTabList;
+
+  lv_obj_set_style_bg_color( tabList, {0x00, 0xff, 0x00}, 0 ); // green
+  lv_obj_set_style_bg_opa( tabList, LV_OPA_COVER, 0 );
 
   /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tab );
+  lv_obj_t * label = lv_label_create( tabList );
   lv_label_set_text( label, "Second tab (0F0 green)" );
+
+  // font size & etc
+  lv_style_init( &styleTabList );
+  lv_style_set_text_decor( &styleTabList, LV_TEXT_DECOR_NONE );
+  lv_style_set_text_font( &styleTabList, &lv_font_montserrat_32 );
+  lv_obj_add_style( tabList, &styleTabList, 0 );
 }
 
-static void setContentOptions( lv_obj_t *tab ) {
-  lv_obj_set_style_bg_color( tab, {0x00, 0x00, 0xff}, 0 ); // blue
-  lv_obj_set_style_bg_opa( tab, LV_OPA_COVER, 0 );
+static void setContentOptions() {
+  static lv_style_t styleTabOptions;
+
+  lv_obj_set_style_bg_color( tabOptions, {0x00, 0x00, 0xff}, 0 ); // blue
+  lv_obj_set_style_bg_opa( tabOptions, LV_OPA_COVER, 0 );
 
   /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tab );
+  lv_obj_t * label = lv_label_create( tabOptions );
   lv_label_set_text( label, "Third tab (00F blue)" );
+
+  // font size & etc
+  lv_style_init( &styleTabOptions );
+  lv_style_set_text_decor( &styleTabOptions, LV_TEXT_DECOR_NONE );
+  lv_style_set_text_font( &styleTabOptions, &lv_font_montserrat_24 );
+  lv_obj_add_style( tabOptions, &styleTabOptions, 0 );
 }
 
 static void setScreenMain() {
   /*Create a Tab view object*/
-  tabview = lv_tabview_create( lv_scr_act() );
-  lv_tabview_set_tab_bar_position( tabview, LV_DIR_RIGHT );
-  lv_tabview_set_tab_bar_size( tabview, 80 );
+  tabView = lv_tabview_create( lv_scr_act() );
+  lv_tabview_set_tab_bar_position( tabView, LV_DIR_RIGHT );
+  lv_tabview_set_tab_bar_size( tabView, 80 );
 
-  lv_obj_set_style_bg_color( tabview, lv_palette_lighten(LV_PALETTE_RED, 2), 0 );
-
-  lv_obj_t * tab_buttons = lv_tabview_get_tab_bar( tabview );
+  lv_obj_t * tab_buttons = lv_tabview_get_tab_bar( tabView );
   lv_obj_set_style_bg_color( tab_buttons, lv_palette_darken(LV_PALETTE_GREY, 3), 0 );
-  lv_obj_set_style_text_color( tab_buttons, lv_palette_lighten(LV_PALETTE_GREY, 5), 0 );
-  lv_obj_set_style_border_side( tab_buttons, LV_BORDER_SIDE_RIGHT, LV_PART_ITEMS | LV_STATE_CHECKED );
-
-  static lv_style_t styleTab;
-  lv_style_init( &styleTab );
-  lv_style_set_text_decor( &styleTab, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTab, &lv_font_montserrat_32 );
-  lv_obj_add_style( tabview, &styleTab, 0 );
-  /*Add 3 tabs (the tabs are page (lv_page) and can be scrolled*/
-  lv_obj_t * tabHome = lv_tabview_add_tab( tabview, LV_SYMBOL_HOME );
-  lv_obj_t * tabList = lv_tabview_add_tab( tabview, LV_SYMBOL_LIST );
-  lv_obj_t * tabOptions = lv_tabview_add_tab( tabview, LV_SYMBOL_SETTINGS );
+  lv_obj_set_style_text_color( tab_buttons, lv_palette_lighten(LV_PALETTE_GREY, 3), 0 );
+  lv_obj_set_style_border_side( tab_buttons, LV_BORDER_SIDE_RIGHT, LV_PART_MAIN );
 
   lv_style_init( &styleTabs );
   lv_style_set_text_decor( &styleTabs, LV_TEXT_DECOR_NONE );
   lv_style_set_text_font( &styleTabs, &lv_font_montserrat_32 );
-  lv_obj_add_style( tabHome, &styleTabs, 0 );
-  lv_obj_add_style( tabList, &styleTabs, 0 );
-  lv_obj_add_style( tabOptions, &styleTabs, 0 );
+  lv_obj_add_style( tabView, &styleTabs, 0 );
 
-  setContentHome( tabHome );
-  setContentList( tabList );
-  setContentOptions( tabOptions );
+  // Add 3 tabs (returned tabs are page (widget of lv_page) and can be scrolled
+  tabHome = lv_tabview_add_tab( tabView, LV_SYMBOL_HOME );
+  tabList = lv_tabview_add_tab( tabView, LV_SYMBOL_LIST );
+  tabOptions = lv_tabview_add_tab( tabView, LV_SYMBOL_SETTINGS );
 
-  lv_obj_remove_flag( lv_tabview_get_content(tabview), LV_OBJ_FLAG_SCROLLABLE );
+  lv_obj_remove_flag( lv_tabview_get_content(tabView), LV_OBJ_FLAG_SCROLLABLE );
+
+  setContentHome();
+  setContentList();
+  setContentOptions();
 }
 
 void GUI_Init() {
@@ -136,6 +153,6 @@ void GUI_Handle( uint32_t tick_period ) {
 
 void GUI_SetTabActive( uint32_t tabNr )
 {
-  lv_tabview_set_active( tabview, tabNr, LV_ANIM_OFF );
+  lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
   Serial.println( "Timer callback function executed" );
 }
