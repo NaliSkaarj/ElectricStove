@@ -4,9 +4,6 @@
 #include "myOTA.h"
 #include "buzzer.h"
 
-// extern double input, output;   // testing PID module
-
-uint16_t x, y;
 bool color = true;
 unsigned long currentTime, next10S, next1S, next10mS;
 
@@ -28,7 +25,7 @@ void setup() {
   BUZZ_Init();
   OTA_Setup();
 
-  // test some features
+  // test timer feature
   xTimerHandle xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
   xTimerStart( xTimer, 5000 );
 
@@ -51,14 +48,6 @@ void loop() {
     Serial.print( "*" );
     OTA_LogWrite( "?" );
     next1S += 1000;
-
-    // for testing PID module
-    // if( input < 100 ) {
-    //   input++;
-    // }
-    // Serial.print( input );
-    // Serial.print( ": " );
-    // Serial.println( output );
   }
 
   // handle stuff every 10 second
