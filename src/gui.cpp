@@ -153,6 +153,10 @@ void GUI_Handle( uint32_t tick_period ) {
 
 void GUI_SetTabActive( uint32_t tabNr )
 {
+  if( (0 > tabNr) || (3 <= tabNr) ) {
+    return;
+  }
+
   lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
   Serial.println( "Timer callback function executed" );
 }
