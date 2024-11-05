@@ -9,6 +9,7 @@ static lv_style_t styleTabs;  // has impact on tabs icons size
 static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
 static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
 static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
+static bool       touchEvent = false;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -46,8 +47,16 @@ static void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * dat
 }
 
 static void tabEventCb( lv_event_t * event ) {
-  BUZZ_Add( 80 );
-  OTA_LogWrite( "VALUE_CHANGED\n" );
+  if( touchEvent ) {  // buzz only on user events (exclude SW events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+  OTA_LogWrite( "TAB_EVENT\n" );
+}
+
+static void touchEventCb( lv_event_t * event ) {
+  touchEvent = true;
+  OTA_LogWrite( "TOUCH_EVENT\n" );
 }
 
 static void setContentHome() {
@@ -151,6 +160,8 @@ void GUI_Init() {
   lv_indev_set_type( indev, LV_INDEV_TYPE_POINTER );    // Touch pad is a pointer-like device
   lv_indev_set_read_cb( indev, customTouchpadRead );    // Set your driver function
   lv_indev_enable( indev, true );
+
+  lv_indev_add_event_cb( indev, touchEventCb, LV_EVENT_CLICKED, NULL );
 
   setScreenMain();
 }
