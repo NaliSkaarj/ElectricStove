@@ -1,6 +1,8 @@
 #include "gui.h"
 #include "TFT_eSPI.h"
 #include "lvgl.h"
+#include "buzzer.h"
+#include "myOTA.h"
 
 static lv_obj_t * tabView;    // main container for 3 tabs
 static lv_style_t styleTabs;  // has impact on tabs icons size
@@ -41,6 +43,11 @@ static void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * dat
   else {
     data->state = LV_INDEV_STATE_RELEASED;
   }
+}
+
+static void tabEventCb( lv_event_t * event ) {
+  BUZZ_Add( 80 );
+  OTA_LogWrite( "VALUE_CHANGED\n" );
 }
 
 static void setContentHome() {
@@ -116,6 +123,8 @@ static void setScreenMain() {
   tabOptions = lv_tabview_add_tab( tabView, LV_SYMBOL_SETTINGS );
 
   lv_obj_remove_flag( lv_tabview_get_content(tabView), LV_OBJ_FLAG_SCROLLABLE );
+  // set callback for clicking on TABs
+  lv_obj_add_event_cb( tabView, tabEventCb, LV_EVENT_VALUE_CHANGED, NULL );
 
   setContentHome();
   setContentList();
