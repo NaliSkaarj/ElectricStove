@@ -2,7 +2,7 @@
 #include <PID.h>
 #include <PID_v1.h>
 
-#define TOTAL_WINDOW_SIZE   PID_WINDOW_SIZE + PID_DEADTIME_SIZE
+#define TOTAL_WINDOW_SIZE   ( PID_WINDOW_SIZE + PID_DEADTIME_SIZE )
 
 static unsigned long windowStartTime, currentTime;
 static double setPoint, input, output;
@@ -14,18 +14,19 @@ PID myPID( &input, &output, &setPoint, Kp, Ki, Kd, DIRECT );
 
 void PID_Init() {
   pinMode( PID_PIN_RELAY, OUTPUT );
+  digitalWrite( PID_PIN_RELAY, LOW );
   isOn = false;
   windowStartTime = millis();
   setPoint = 20;
   output = 0.0;
   myPID.SetOutputLimits( 0, PID_WINDOW_SIZE );
   myPID.SetSampleTime( PID_INTERVAL_COMPUTE );
-  //turn the PID on
   myPID.SetMode( AUTOMATIC );
 }
 
 void PID_Compute() {
   if( !isOn ) {
+    digitalWrite( PID_PIN_RELAY, LOW );
     return;
   }
 
@@ -34,7 +35,7 @@ void PID_Compute() {
   currentTime = millis();
 
   if( currentTime - windowStartTime > TOTAL_WINDOW_SIZE )
-  { //time to shift the Relay Window
+  { // it's time to shift the Relay Window
     windowStartTime += TOTAL_WINDOW_SIZE;
   }
 
@@ -55,5 +56,10 @@ void PID_On() {
 }
 
 void PID_Off() {
+  digitalWrite( PID_PIN_RELAY, LOW );
   isOn = false;
+}
+
+void PID_updateTemp( double temp ) {
+  input = temp;
 }
