@@ -1,5 +1,5 @@
-#ifndef PID_H
-#define PID_H
+#ifndef _PID_H
+#define _PID_H
 
 #include <Arduino.h>
 
@@ -14,5 +14,6 @@ void PID_Compute();
 void PID_SetPoint( uint16_t targetPoint );
 void PID_On();
 void PID_Off();
+void PID_updateTemp( double temp );
 
-#endif  // PID_H
+#endif  // _PID_H

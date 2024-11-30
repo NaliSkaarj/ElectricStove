@@ -1,6 +1,6 @@
 #include <Arduino.h>
 #include "gui.h"
-#include "PID.h"
+#include "heater.h"
 #include "myOTA.h"
 #include "buzzer.h"
 
@@ -11,19 +11,27 @@ void myTimerCallback( xTimerHandle pxTimer )
 {
   GUI_SetTabActive( 1 );
   Serial.println( "Timer callback function executed" );
-  BUZZ_Add( 2000, 1000, 500, 5 );
+  BUZZ_Add( 0, 100, 500, 3 );
+  HEATER_setTempTime( 100, MINUTES_TO_MS(1) );
+  HEATER_start();
+}
+
+void heatingDone( void ) {
+  BUZZ_Add( 0, 1000, 200, 5 );
+  ///TODO: set a flag to indicate that current phase of heating process is finished and next phase can be performed
+  // Important: do not take HEATER's semaphore here
+  OTA_LogWrite( "Heating done!\n" );
 }
 
 void setup() {
   // input = 20;
   Serial.begin( 115200 );
 
-  GUI_Init();
-  PID_Init();
-  PID_SetPoint( 100 );
-  PID_On();
-  BUZZ_Init();
   OTA_Setup();
+  BUZZ_Init();
+  GUI_Init();
+  HEATER_Init();
+  HEATER_setCallback( heatingDone );
 
   // test timer feature
   xTimerHandle xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
@@ -40,7 +48,6 @@ void loop() {
   if( currentTime >= next10mS ) {
     GUI_Handle( 10 );
     next10mS += 10;
-    PID_Compute();
   }
 
   // handle stuff every 100 miliseconds
