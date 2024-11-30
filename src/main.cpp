@@ -5,7 +5,7 @@
 #include "buzzer.h"
 
 bool color = true;
-unsigned long currentTime, next10S, next1S, next10mS;
+unsigned long currentTime, next10S, next1S, next10mS, next100mS;
 
 void myTimerCallback( xTimerHandle pxTimer ) 
 {
@@ -41,6 +41,13 @@ void loop() {
     GUI_Handle( 10 );
     next10mS += 10;
     PID_Compute();
+  }
+
+  // handle stuff every 100 miliseconds
+  if( currentTime >= next100mS ) {
+    static uint8_t t = 0;
+    GUI_SetTemp( t++ );
+    next100mS += 100;
   }
 
   // handle stuff every 1 second

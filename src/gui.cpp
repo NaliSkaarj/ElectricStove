@@ -4,15 +4,58 @@
 #include "buzzer.h"
 #include "myOTA.h"
 
+#define MINUTE_TO_MILLIS(m)   ((m) * 1000)
+#define HOUR_TO_MILLIS(h)     ((h) * 60 * 1000)
+#define MAX_ALLOWED_TIME      ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )
+#define MAX_ALLOWED_TEMP      300
+
+
+typedef enum rollerType { ROLLER_TIME = 1, ROLLER_TEMP } roller_t;
+typedef enum buttonGroup { BUTTONS_START = 1, BUTTONS_STOP } buttonGroup_t;
+
 static lv_obj_t * tabView;    // main container for 3 tabs
 static lv_style_t styleTabs;  // has impact on tabs icons size
 static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
 static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
 static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
 static bool       touchEvent = false;
+static lv_obj_t * labelTargetTempVal;
+static lv_obj_t * labelTargetTimeVal;
+static lv_obj_t * labelCurrentTempVal;
+static lv_obj_t * labelCurrentTimeVal;
+static lv_obj_t * containerRoller;
+static lv_obj_t * containerButtons;
+static lv_obj_t * roller1;
+static lv_obj_t * roller2;
+static lv_obj_t * roller3;
+static lv_obj_t * roller4;
+static updateTimeCb timeChangedCB = NULL;
+static updateTempCb tempChangedCB = NULL;
+static operationCb heatingStartCB = NULL;
+static operationCb heatingStopCB = NULL;
+static operationCb heatingPauseCB = NULL;
+static buttonGroup_t buttonsGroup;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
+
+static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uint8_t * color_p );
+static void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * data );
+static void tabEventCb( lv_event_t * event );
+static void touchEventCb( lv_event_t * event );
+static void timeEventCb( lv_event_t * event );
+static void tempEventCb( lv_event_t * event );
+static void btnOkEventCb( lv_event_t * event );
+static void btnCancelEventCb( lv_event_t * event );
+static void btnStartEventCb( lv_event_t * event );
+static void btnStopEventCb( lv_event_t * event );
+static void btnPauseEventCb( lv_event_t * event );
+static void rollerCreate( roller_t rType );
+static void createOperatingButtons();
+static void setContentHome();
+static void setContentList();
+static void setContentOptions();
+static void setScreenMain();
 
 /* Display flushing */
 static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uint8_t * color_p )
@@ -51,6 +94,7 @@ static void tabEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
+
   OTA_LogWrite( "TAB_EVENT\n" );
 }
 
@@ -59,21 +103,336 @@ static void touchEventCb( lv_event_t * event ) {
   OTA_LogWrite( "TOUCH_EVENT\n" );
 }
 
+static void timeEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "TIME_EVENT\n" );
+  rollerCreate( ROLLER_TIME );
+}
+
+static void tempEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "TEMP_EVENT\n" );
+  rollerCreate( ROLLER_TEMP );
+}
+
+static void btnOkEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  roller_t * rType = (roller_t *)lv_event_get_user_data( event );
+
+  OTA_LogWrite( "OK_EVENT\n" );
+
+  if( ROLLER_TEMP == *rType ) {
+    uint32_t t1 = lv_roller_get_selected( roller1 );
+    uint32_t t2 = lv_roller_get_selected( roller2 );
+    uint32_t t3 = lv_roller_get_selected( roller3 );
+
+    if( NULL != tempChangedCB ) {
+      tempChangedCB( t1 * 100 + t2 * 10 + t3 );
+    }
+  }
+  else if( ROLLER_TIME == *rType ) {
+    uint32_t h1 = lv_roller_get_selected( roller1 );
+    uint32_t h2 = lv_roller_get_selected( roller2 );
+    uint32_t m1 = lv_roller_get_selected( roller3 );
+    uint32_t m2 = lv_roller_get_selected( roller4 );
+
+    if( NULL != timeChangedCB ) {
+      timeChangedCB( HOUR_TO_MILLIS(h1 * 10 + h2) + MINUTE_TO_MILLIS(m1 * 10 + m2) );
+    }
+  }
+
+  lv_obj_del( containerRoller );
+}
+
+static void btnCancelEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "CANCEL_EVENT\n" );
+  lv_obj_del( containerRoller );
+}
+
+static void btnStartEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "START_EVENT\n" );
+
+  if( NULL != heatingStartCB ) {
+    heatingStartCB();
+  }
+}
+
+static void btnStopEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "STOP_EVENT\n" );
+
+  if( NULL != heatingStopCB ) {
+    heatingStopCB();
+  }
+}
+
+static void btnPauseEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "PAUSE_EVENT\n" );
+
+  if( NULL != heatingPauseCB ) {
+    heatingPauseCB();
+  }
+}
+
+static void rollerCreate( roller_t rType ) {
+  #define ROLLER_WIDTH      60
+  #define ROLLER_ROW_COUNT  4
+
+  const char * opts2 = "0\n1\n2";
+  const char * opts5 = "0\n1\n2\n3\n4\n5";
+  const char * opts9 = "0\n1\n2\n3\n4\n5\n6\n7\n8\n9";
+  static lv_style_t style_sel;
+  static roller_t rollerType;
+
+  ( void )opts2;  // suppress CppCheck warning (c-cpp-flylint)(variableScope)
+  rollerType = rType;
+
+  containerRoller = lv_obj_create( tabHome );
+  lv_obj_set_style_border_width( containerRoller, 4, 0 );
+  lv_obj_set_style_width( containerRoller, lv_obj_get_style_width( tabHome, LV_PART_MAIN ), 0 );
+  lv_obj_set_style_height( containerRoller, lv_obj_get_style_height( tabHome, LV_PART_MAIN ), 0 );
+  lv_obj_remove_flag( containerRoller, LV_OBJ_FLAG_SCROLLABLE );
+
+  lv_style_init( &style_sel );
+  lv_style_set_text_font( &style_sel, &lv_font_montserrat_32 );
+  lv_style_set_bg_color( &style_sel, lv_color_hex3(0xf88) );
+  lv_style_set_border_width( &style_sel, 2 );
+  lv_style_set_border_color( &style_sel, lv_color_hex3(0xf00) );
+
+  roller1 = lv_roller_create( containerRoller );
+  lv_roller_set_visible_row_count( roller1, ROLLER_ROW_COUNT );
+  lv_obj_set_style_text_font( roller1, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_width( roller1, ROLLER_WIDTH );
+  lv_obj_add_style( roller1, &style_sel, LV_PART_SELECTED );
+  lv_roller_set_selected( roller1, 5, LV_ANIM_OFF );
+
+  roller2 = lv_roller_create( containerRoller );
+  lv_roller_set_options( roller2, opts9, LV_ROLLER_MODE_NORMAL );
+  lv_roller_set_visible_row_count( roller2, ROLLER_ROW_COUNT );
+  lv_obj_set_style_text_font( roller2, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_width( roller2, ROLLER_WIDTH );
+  lv_obj_add_style( roller2, &style_sel, LV_PART_SELECTED );
+
+  roller3 = lv_roller_create( containerRoller );
+  lv_roller_set_visible_row_count( roller3, ROLLER_ROW_COUNT );
+  lv_obj_set_style_text_font( roller3, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_width( roller3, ROLLER_WIDTH );
+  lv_obj_add_style( roller3, &style_sel, LV_PART_SELECTED );
+
+  if( ROLLER_TEMP == rollerType ) {
+    lv_roller_set_options( roller1, opts2, LV_ROLLER_MODE_NORMAL );
+    lv_roller_set_options( roller3, opts9, LV_ROLLER_MODE_NORMAL );
+    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 10, -35 );
+    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 80, -35 );
+    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 190, -35 );
+  }
+  else if( ROLLER_TIME == rollerType ) {  // ROLLER_TIME
+    lv_roller_set_options( roller1, opts9, LV_ROLLER_MODE_NORMAL );
+    lv_roller_set_options( roller3, opts5, LV_ROLLER_MODE_NORMAL );
+    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 10, -35 );
+    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 80, -35 );
+    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 190, -35 );
+
+    roller4 = lv_roller_create( containerRoller );
+    lv_roller_set_options( roller4, opts9, LV_ROLLER_MODE_NORMAL );
+    lv_roller_set_visible_row_count( roller4, ROLLER_ROW_COUNT );
+    lv_obj_set_style_text_font( roller4, &lv_font_montserrat_24, LV_PART_MAIN );
+    lv_obj_set_width( roller4, ROLLER_WIDTH );
+    lv_obj_add_style( roller4, &style_sel, LV_PART_SELECTED );
+    lv_obj_align( roller4, LV_ALIGN_LEFT_MID, 260, -35 );
+  }
+
+  // buttons: OK & Cancel
+  lv_obj_t * btnOk = lv_button_create( containerRoller );
+  lv_obj_t * btnCancel = lv_button_create( containerRoller );
+  static lv_style_t styleBtn;
+
+  lv_style_init( &styleBtn );
+  lv_style_set_width( &styleBtn, 150 );
+  lv_style_set_height( &styleBtn, 50 );
+  lv_obj_add_style( btnOk, &styleBtn, 0 );
+  lv_obj_add_style( btnCancel, &styleBtn, 0 );
+  lv_obj_set_style_bg_color( btnOk, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
+  lv_obj_set_style_bg_color( btnCancel, LV_COLOR_MAKE(0x36, 0x43, 0xF4), 0 );
+  lv_obj_align( btnOk, LV_ALIGN_TOP_LEFT, 5, 205 );
+  lv_obj_align( btnCancel, LV_ALIGN_TOP_LEFT, 175, 205 );
+  lv_obj_remove_flag( btnOk, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( btnCancel, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnOk, btnOkEventCb, LV_EVENT_CLICKED, &rollerType );
+  lv_obj_add_event_cb( btnCancel, btnCancelEventCb, LV_EVENT_CLICKED, NULL );
+
+  lv_obj_t * labelBtn = lv_label_create( btnOk );
+  lv_label_set_text( labelBtn, "OK" );
+  lv_obj_center( labelBtn );
+  labelBtn = lv_label_create( btnCancel );
+  lv_label_set_text( labelBtn, "CANCEL" );
+  lv_obj_center( labelBtn );
+}
+
+static void createOperatingButtons() {
+  if( NULL != containerButtons ) {
+    lv_obj_del( containerButtons );
+  }
+  containerButtons = lv_obj_create( tabHome );
+  lv_obj_remove_style_all( containerButtons );
+  lv_obj_set_style_width( containerButtons, lv_obj_get_style_width( tabHome, LV_PART_MAIN ), 0 );
+  lv_obj_set_style_height( containerButtons, 100, 0 );
+  lv_obj_set_style_border_width( containerButtons, 1, 0 );
+  lv_obj_set_style_border_color( containerButtons, {0, 0, 255}, 0 );
+  lv_obj_set_style_pad_all( containerButtons, 2, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( containerButtons, LV_OPA_0, 0 );
+  lv_obj_remove_flag( containerButtons, LV_OBJ_FLAG_SCROLLABLE );
+  lv_obj_align( containerButtons, LV_ALIGN_OUT_LEFT_TOP, 0, 200 );
+
+  if( BUTTONS_START == buttonsGroup ) {
+    lv_obj_t * btnStart = lv_button_create( containerButtons );
+    lv_obj_set_style_width( btnStart, lv_obj_get_style_width( containerButtons, LV_PART_MAIN ), 0 );
+    lv_obj_set_style_height( btnStart, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
+    lv_obj_set_style_bg_color( btnStart, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
+    lv_obj_remove_flag( btnStart, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_add_event_cb( btnStart, btnStartEventCb, LV_EVENT_CLICKED, NULL );
+
+    lv_obj_t * labelBtnStart = lv_label_create( btnStart );
+    lv_label_set_text( labelBtnStart, "START" );
+    lv_obj_center( labelBtnStart );
+  }
+  else if( BUTTONS_STOP == buttonsGroup ) {
+    lv_obj_t * btnPause = lv_button_create( containerButtons );
+    lv_obj_t * btnStop = lv_button_create( containerButtons );
+    lv_obj_set_style_width( btnPause, 180, 0 );
+    lv_obj_set_style_height( btnPause, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
+    lv_obj_set_style_width( btnStop, 180, 0 );
+    lv_obj_set_style_height( btnStop, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
+    lv_obj_set_style_bg_color( btnPause, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
+    lv_obj_set_style_bg_color( btnStop, {0xF0, 0x20, 0x20}, 0 );
+    lv_obj_remove_flag( btnPause, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( btnStop, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_align( btnPause, LV_ALIGN_TOP_LEFT, 0, 0 );
+    lv_obj_align( btnStop, LV_ALIGN_TOP_LEFT, 200, 0 );
+
+    lv_obj_t * labelBtnPause = lv_label_create( btnPause );
+    lv_obj_t * labelBtnStop = lv_label_create( btnStop );
+    lv_label_set_text( labelBtnPause, "PAUSE" );
+    lv_label_set_text( labelBtnStop, "STOP" );
+    lv_obj_center( labelBtnPause );
+    lv_obj_center( labelBtnStop );
+    lv_obj_add_event_cb( btnPause, btnPauseEventCb, LV_EVENT_CLICKED, NULL );
+    lv_obj_add_event_cb( btnStop, btnStopEventCb, LV_EVENT_CLICKED, NULL );
+  }
+}
+
 static void setContentHome() {
   static lv_style_t styleTabHome;
+  static lv_style_t styleTime, styleBtn;
 
   lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, 0 ); // red
   lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, 0 );
+  lv_obj_set_style_pad_all( tabHome, 5, 0 );
 
   /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tabHome );
-  lv_label_set_text( label, "First tab" );
+  lv_obj_t * labelTime = lv_label_create( tabHome );
+  lv_obj_t * labelTemp = lv_label_create( tabHome );
+  lv_obj_t * btnTime = lv_button_create( tabHome );
+  lv_obj_t * btnTemp = lv_button_create( tabHome );
+
+  // lv_label_set_text( labelTime, "[00:00]\nTime[h:m]\n00:00" ); // used for adjusting label position
+  // lv_label_set_text( labelTemp, "[---]\nTemp[°C]\n123" );      // used for adjusting label position
+  lv_label_set_text( labelTime, "\nTime[h:m]\n" );
+  lv_label_set_text( labelTemp, "\nTemp[°C]\n" );
+
+  lv_obj_align( labelTime, LV_ALIGN_TOP_LEFT, 5, 5 );
+  lv_obj_align( labelTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
+
+  labelTargetTimeVal = lv_label_create( tabHome );
+  labelCurrentTimeVal = lv_label_create( tabHome );
+  labelTargetTempVal = lv_label_create( tabHome );
+  labelCurrentTempVal = lv_label_create( tabHome );
+
+  lv_label_set_text( labelTargetTimeVal, "[00:00]" );
+  lv_label_set_text( labelCurrentTimeVal, "00:00" );
+  lv_label_set_text( labelTargetTempVal, "[---]" );
+  lv_label_set_text( labelCurrentTempVal, "123" );
+
+  lv_obj_align( labelTargetTimeVal, LV_ALIGN_TOP_MID, -101, 19 );
+  lv_obj_align( labelCurrentTimeVal, LV_ALIGN_TOP_MID, -101, 89 );
+  lv_obj_align( labelTargetTempVal, LV_ALIGN_TOP_MID, 94, 19 );
+  lv_obj_align( labelCurrentTempVal, LV_ALIGN_TOP_MID, 95, 89 );
+  
+  lv_style_init( &styleTime );
+  lv_style_set_bg_opa( &styleTime, LV_OPA_COVER );
+  lv_style_set_radius( &styleTime, 10 );
+  lv_style_set_width( &styleTime, 180 );
+  lv_style_set_height( &styleTime, 130 );
+  lv_style_set_bg_color( &styleTime, lv_palette_lighten(LV_PALETTE_BROWN, 2) );
+  lv_style_set_border_width( &styleTime, 4 );
+  lv_style_set_border_color( &styleTime, lv_palette_main(LV_PALETTE_BLUE) );
+  lv_style_set_pad_ver( &styleTime, 10 );
+  lv_style_set_pad_hor( &styleTime, 0 );
+  lv_style_set_text_color( &styleTime, lv_palette_main(LV_PALETTE_GREEN) );
+  lv_style_set_text_align( &styleTime, LV_TEXT_ALIGN_CENTER );
+  lv_obj_add_style( labelTime, &styleTime, 0 );
+  lv_obj_add_style( labelTemp, &styleTime, 0 );
 
   // font size & etc
   lv_style_init( &styleTabHome );
   lv_style_set_text_decor( &styleTabHome, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabHome, &lv_font_montserrat_16 );
+  lv_style_set_text_font( &styleTabHome, &lv_font_montserrat_32 );
+  lv_style_set_pad_all( &styleTabHome, 15 );
   lv_obj_add_style( tabHome, &styleTabHome, 0 );
+
+  // trick: invisible button overlapping label (just to have clickable label)
+  lv_style_init( &styleBtn );
+  lv_style_set_bg_opa( &styleBtn, LV_OPA_0 );
+  lv_style_set_radius( &styleBtn, 10 );
+  lv_style_set_width( &styleBtn, 180 );
+  lv_style_set_height( &styleBtn, 130 );
+  lv_style_set_border_width( &styleBtn, 4 );
+  lv_style_set_border_color( &styleBtn, LV_COLOR_MAKE(0xF3, 0x96, 0x21) );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+  lv_style_set_border_opa( &styleBtn, LV_OPA_COVER );
+  lv_obj_remove_style_all( btnTime );
+  lv_obj_remove_style_all( btnTemp );
+  lv_obj_add_style( btnTime, &styleBtn, 0 );
+  lv_obj_add_style( btnTemp, &styleBtn, 0 );
+  lv_obj_align( btnTime, LV_ALIGN_TOP_LEFT, 5, 5 );
+  lv_obj_align( btnTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
+  lv_obj_remove_flag( btnTime, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( btnTemp, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnTime, timeEventCb, LV_EVENT_CLICKED, NULL );
+  lv_obj_add_event_cb( btnTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
+
+  buttonsGroup = BUTTONS_START; // show Start button by default
+  createOperatingButtons();
 }
 
 static void setContentList() {
@@ -179,4 +538,151 @@ void GUI_SetTabActive( uint32_t tabNr )
 
   lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
   Serial.println( "Timer callback function executed" );
+}
+
+void GUI_SetTargetTemp( uint16_t temp ) {
+  char buff[4];
+  uint16_t t = temp;
+  uint16_t t1, t2, t3;
+
+  if( MAX_ALLOWED_TEMP < t ) {
+    t = MAX_ALLOWED_TEMP;
+  }
+
+  t1 = (uint16_t)(t / 100);
+  t -= ( t1 * 100 );
+  t2 = (uint16_t)(t / 10);
+  t -= ( t2 * 10 );
+  t3 = t;
+
+  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
+  buff[1] = ( 0 < t2 ? '0' + t2 : ' ' );
+  buff[2] = '0' + t3;
+  buff[3] = '\0';
+
+  lv_label_set_text( labelTargetTempVal, buff );
+  // lv_label_set_text( labelTargetTempVal, "[---]" );  // used for adjusting label position
+}
+
+void GUI_SetCurrentTemp( uint16_t temp ) {
+  char buff[4];
+  ///TODO: double code!, duplication in GUI_SetTargetTemp(), can be reduced to one function call. The same regarding time
+  uint16_t t = temp;
+  uint16_t t1, t2, t3;
+
+  if( MAX_ALLOWED_TEMP < t ) {
+    t = MAX_ALLOWED_TEMP;
+  }
+
+  t1 = (uint16_t)(t / 100);
+  t -= ( t1 * 100 );
+  t2 = (uint16_t)(t / 10);
+  t -= ( t2 * 10 );
+  t3 = t;
+
+  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
+  buff[1] = ( 0 < t2 ? '0' + t2 : ' ' );
+  buff[2] = '0' + t3;
+  buff[3] = '\0';
+
+  lv_label_set_text( labelCurrentTempVal, buff );
+  // lv_label_set_text( labelCurrentTempVal, "123" );  // used for adjusting label position
+}
+
+void GUI_SetTargetTime( uint32_t time ) {
+  char buff[8];
+  uint32_t t = time;
+  uint32_t h1, h2, m1, m2;
+
+  if( MAX_ALLOWED_TIME < t ) {
+    t = MAX_ALLOWED_TIME;
+  }
+
+  h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
+  t -= ( h1 * HOUR_TO_MILLIS(10) );
+  h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
+  t -= ( h2 * HOUR_TO_MILLIS(1) );
+  m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
+  t -= ( m1 * MINUTE_TO_MILLIS(10) );
+  m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
+
+  buff[0] = '[';
+  buff[1] = '0' + h1;
+  buff[2] = '0' + h2;
+  buff[3] = ':';
+  buff[4] = '0' + m1;
+  buff[5] = '0' + m2;
+  buff[6] = ']';
+  buff[7] = '\0';
+  lv_label_set_text( labelTargetTimeVal, buff );
+  // lv_label_set_text( labelTargetTimeVal, "[00:00]" );  // used for adjusting label position
+}
+
+void GUI_SetCurrentTime( uint32_t time ) {
+  char buff[6];
+  uint32_t t = time;
+  uint32_t h1, h2, m1, m2;
+
+  if( MAX_ALLOWED_TIME < t ) {
+    t = MAX_ALLOWED_TIME;
+  }
+
+  h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
+  t -= ( h1 * HOUR_TO_MILLIS(10) );
+  h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
+  t -= ( h2 * HOUR_TO_MILLIS(1) );
+  m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
+  t -= ( m1 * MINUTE_TO_MILLIS(10) );
+  m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
+
+  buff[0] = '0' + h1;
+  buff[1] = '0' + h2;
+  buff[2] = ':';
+  buff[3] = '0' + m1;
+  buff[4] = '0' + m2;
+  buff[5] = '\0';
+
+  lv_label_set_text( labelCurrentTimeVal, buff );
+  // lv_label_set_text( labelCurrentTimeVal, "00:00" );  // used for adjusting label position
+}
+
+void GUI_setTimeCallback( updateTimeCb func ) {
+  if( NULL != func ) {
+    timeChangedCB = func;
+  }
+}
+
+void GUI_setTempCallback( updateTempCb func ) {
+  if( NULL != func ) {
+    tempChangedCB = func;
+  }
+}
+
+void GUI_setStartCallback( operationCb func ) {
+  if( NULL != func ) {
+    heatingStartCB = func;
+  }
+}
+
+void GUI_setStopCallback( operationCb func ) {
+  if( NULL != func ) {
+    heatingStopCB = func;
+  }
+}
+
+void GUI_setPauseCallback( operationCb func ) {
+  if( NULL != func ) {
+    heatingPauseCB = func;
+  }
+}
+
+void GUI_setOperationButtons( enum operationButton btnGroup ) {
+  if( BUTTON_START == btnGroup ) {
+    buttonsGroup = BUTTONS_START;
+    createOperatingButtons();
+  }
+  else if( BUTTON_PAUSE_STOP == btnGroup ) {
+    buttonsGroup = BUTTONS_STOP;
+    createOperatingButtons();
+  }
 }
