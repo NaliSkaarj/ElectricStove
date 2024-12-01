@@ -7,7 +7,7 @@
 #define PID_PIN_RELAY           25
 #define PID_WINDOW_SIZE         8000
 #define PID_DEADTIME_SIZE       2000
-#define PID_INTERVAL_COMPUTE    10  // the period (in ms) at which the calculation is performed
+#define PID_INTERVAL_COMPUTE    100     // the period (in ms) at which the calculation is performed
 
 void PID_Init();
 void PID_Compute();

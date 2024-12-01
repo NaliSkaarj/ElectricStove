@@ -16,10 +16,10 @@ typedef void (* heaterDoneCb)( void );
 void HEATER_Init( void );
 
 /**
- * Set destiny temperature
+ * Set target temperature
  * temp         -   temperature to be reached
  */
-void HEATER_setTemperature( uint32_t temp );
+void HEATER_setTemperature( uint16_t temp );
 
 /**
  * Set time period
@@ -28,11 +28,11 @@ void HEATER_setTemperature( uint32_t temp );
 void HEATER_setTime( uint32_t time );
 
 /**
- * Set destiny temperature and time period
+ * Set target temperature and time period
  * temp         -   temperature to be reached
  * time         -   the time for which the temperature will be maintained
  */
-void HEATER_setTempTime( uint32_t temp, uint32_t time );
+void HEATER_setTempTime( uint16_t temp, uint32_t time );
 
 /**
  * Start heating process

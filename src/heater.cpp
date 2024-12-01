@@ -54,7 +54,7 @@ static void vTaskHeater( void * pvParameters ) {
       }
     }
 
-    vTaskDelay( 100 / portTICK_PERIOD_MS );
+    vTaskDelay( PID_INTERVAL_COMPUTE / portTICK_PERIOD_MS );
   }
 }
 
@@ -68,7 +68,7 @@ static void heaterHandle() {
         }
 
         case HEATING_PROCESSING: {
-          if( millis() >= ( heatingTimeStart + heatingTimeGoal ) ) {  // times is up
+          if( millis() >= ( heatingTimeStart + heatingTimeGoal ) ) {  // time is up
             PID_Off();
             heaterState = HEATING_STOP;
 
@@ -124,7 +124,7 @@ void HEATER_Init( void ) {
   initialized = true;
 }
 
-void HEATER_setTemperature( uint32_t temp ) {
+void HEATER_setTemperature( uint16_t temp ) {
   if( false == initialized ) {
     return;
   }
@@ -166,7 +166,7 @@ void HEATER_setTime( uint32_t time ) {
   }
 }
 
-void HEATER_setTempTime( uint32_t temp, uint32_t time ) {
+void HEATER_setTempTime( uint16_t temp, uint32_t time ) {
   if( false == initialized ) {
     return;
   }
@@ -278,6 +278,7 @@ void HEATER_stop( void ) {
 
         case HEATING_PAUSE: {
           ///TODO: handle stop when pausing
+          PID_Off();
           OTA_LogWrite( "HEATER(stop): case not handled yet #3\n" );
           break;
         }
