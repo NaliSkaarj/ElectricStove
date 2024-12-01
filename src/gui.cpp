@@ -7,8 +7,6 @@
 #define MINUTE_TO_MILLIS(m)   ((m) * 1000)
 #define HOUR_TO_MILLIS(h)     ((h) * 60 * 1000)
 #define MAX_ALLOWED_TIME      ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )
-#define MAX_ALLOWED_TEMP      300
-
 
 typedef enum rollerType { ROLLER_TIME = 1, ROLLER_TEMP } roller_t;
 typedef enum buttonGroup { BUTTONS_START = 1, BUTTONS_STOP } buttonGroup_t;
@@ -139,7 +137,7 @@ static void btnOkEventCb( lv_event_t * event ) {
     uint32_t t3 = lv_roller_get_selected( roller3 );
 
     if( NULL != tempChangedCB ) {
-      tempChangedCB( t1 * 100 + t2 * 10 + t3 );
+      tempChangedCB( (uint16_t)(t1 * 100 + t2 * 10 + t3) );
     }
   }
   else if( ROLLER_TIME == *rType ) {
@@ -253,16 +251,16 @@ static void rollerCreate( roller_t rType ) {
   if( ROLLER_TEMP == rollerType ) {
     lv_roller_set_options( roller1, opts2, LV_ROLLER_MODE_NORMAL );
     lv_roller_set_options( roller3, opts9, LV_ROLLER_MODE_NORMAL );
-    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 10, -35 );
-    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 80, -35 );
-    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 190, -35 );
+    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 50, -35 );
+    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 135, -35 );
+    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 220, -35 );
   }
   else if( ROLLER_TIME == rollerType ) {  // ROLLER_TIME
     lv_roller_set_options( roller1, opts9, LV_ROLLER_MODE_NORMAL );
     lv_roller_set_options( roller3, opts5, LV_ROLLER_MODE_NORMAL );
     lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 10, -35 );
-    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 80, -35 );
-    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 190, -35 );
+    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 90, -35 );
+    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 180, -35 );
 
     roller4 = lv_roller_create( containerRoller );
     lv_roller_set_options( roller4, opts9, LV_ROLLER_MODE_NORMAL );
@@ -548,6 +546,9 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   if( MAX_ALLOWED_TEMP < t ) {
     t = MAX_ALLOWED_TEMP;
   }
+  if( MIN_ALLOWED_TEMP > t ) {
+    t = MIN_ALLOWED_TEMP;
+  }
 
   t1 = (uint16_t)(t / 100);
   t -= ( t1 * 100 );
@@ -556,7 +557,7 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   t3 = t;
 
   buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = ( 0 < t2 ? '0' + t2 : ' ' );
+  buff[1] = '0' + t2;
   buff[2] = '0' + t3;
   buff[3] = '\0';
 
@@ -570,8 +571,8 @@ void GUI_SetCurrentTemp( uint16_t temp ) {
   uint16_t t = temp;
   uint16_t t1, t2, t3;
 
-  if( MAX_ALLOWED_TEMP < t ) {
-    t = MAX_ALLOWED_TEMP;
+  if( 999 < t ) { // no more as 3 digits
+    t = 999;
   }
 
   t1 = (uint16_t)(t / 100);
@@ -581,7 +582,7 @@ void GUI_SetCurrentTemp( uint16_t temp ) {
   t3 = t;
 
   buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = ( 0 < t2 ? '0' + t2 : ' ' );
+  buff[1] = '0' + t2;
   buff[2] = '0' + t3;
   buff[3] = '\0';
 
@@ -607,7 +608,7 @@ void GUI_SetTargetTime( uint32_t time ) {
   m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
 
   buff[0] = '[';
-  buff[1] = '0' + h1;
+  buff[1] = ( 0 < h1 ? '0' + h1 : ' ' );
   buff[2] = '0' + h2;
   buff[3] = ':';
   buff[4] = '0' + m1;
@@ -635,7 +636,7 @@ void GUI_SetCurrentTime( uint32_t time ) {
   t -= ( m1 * MINUTE_TO_MILLIS(10) );
   m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
 
-  buff[0] = '0' + h1;
+  buff[0] = ( 0 < h1 ? '0' + h1 : ' ' );
   buff[1] = '0' + h2;
   buff[2] = ':';
   buff[3] = '0' + m1;

@@ -8,18 +8,17 @@
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
 unsigned long currentTime, next10S, next1S, next10mS, next100mS;
-// static uint32_t currentHeatingTime;
-static uint32_t targetHeatingTime, targetHeatingTimeOld;
-// static float currentHeatingTemp;
-static float targetHeatingTemp, targetHeatingTempOld;
+static uint32_t targetHeatingTime;
+static uint16_t targetHeatingTemp;
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
   GUI_SetTargetTime( targetHeatingTime );
 }
 
-static void updateTemp( float temp ) {
+static void updateTemp( uint16_t temp ) {
   targetHeatingTemp = temp;
+  GUI_SetTargetTemp( targetHeatingTemp );
 }
 
 static void heatingStart() {
@@ -82,15 +81,6 @@ void loop() {
 
   // handle stuff every 10 miliseconds
   if( currentTime >= next10mS ) {
-    if( targetHeatingTempOld != targetHeatingTemp ) {
-      GUI_SetTargetTemp( targetHeatingTemp );
-      targetHeatingTempOld = targetHeatingTemp;
-    }
-    if( targetHeatingTimeOld != targetHeatingTime ) {
-      GUI_SetTargetTime( targetHeatingTime );
-      targetHeatingTimeOld = targetHeatingTime;
-    }
-
     GUI_Handle( 10 );
     next10mS += 10;
 

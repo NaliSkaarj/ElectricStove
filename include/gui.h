@@ -3,6 +3,9 @@
 
 #include <stdint.h>
 
+#define MAX_ALLOWED_TEMP      300
+#define MIN_ALLOWED_TEMP      30
+
 enum operationButton {
     BUTTON_START = 1,
     BUTTON_PAUSE_STOP,
@@ -10,7 +13,7 @@ enum operationButton {
 };
 
 typedef void (* updateTimeCb)( uint32_t );
-typedef void (* updateTempCb)( float );
+typedef void (* updateTempCb)( uint16_t );
 typedef void (* operationCb)( void );
 
 /**
