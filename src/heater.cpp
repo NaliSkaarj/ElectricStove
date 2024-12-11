@@ -5,8 +5,6 @@
 #include "buzzer.h"
 #include "myOTA.h"
 
-#define MAXX6675_MAX_TEMP       300
-#define MAXX6675_MIN_TEMP       1
 #define BAD_TEMP_CNT_RISE_ERROR 100
 
 typedef enum heaterStates {
@@ -16,14 +14,17 @@ typedef enum heaterStates {
   HEATING_STATE_COUNT
 } heaterStates;
 
-static heaterStates       heaterState = HEATING_STOP;   // quarded by mutex
+static heaterStates       heaterState = HEATING_STOP;     // quarded by mutex
 static bool               initialized = false;
-static uint32_t           heatingTempGoal = 0;
-static uint32_t           heatingTimeGoal = 0;          // quarded by mutex
-static uint32_t           heatingTimeStart;             // quarded by mutex
+static uint32_t           heatingTempRequested = 0;
+static uint32_t           heatingTimeRequested = 0;       // quarded by mutex
+static uint32_t           heatingTimeStart;               // quarded by mutex
+static uint32_t           heatingTimeStop;
+static uint32_t           heatingTimePauseTotal = 0;
+static uint32_t           heatingTimePauseStart;
 static volatile float     currentTemperature = 0.0f;
 static heaterDoneCb       funcDoneCB = NULL;
-static uint32_t           failSemaphoreCounter = 0;     // debug purpose only
+static uint32_t           failSemaphoreCounter = 0;       // debug purpose only
 static SemaphoreHandle_t  xSemaphore = NULL;
 static StaticSemaphore_t  xMutexBuffer;
 static TaskHandle_t       taskHandle = NULL;
@@ -39,8 +40,8 @@ static void vTaskHeater( void * pvParameters ) {
   while( 1 ) {
     float currTemp = MAX6675_readCelsius();
 
-    if( MAXX6675_MIN_TEMP <= currTemp
-    && MAXX6675_MAX_TEMP >= currTemp
+    if( MIN_ALLOWED_TEMP <= currTemp
+    && MAX_ALLOWED_TEMP >= currTemp
     ) {
       currentTemperature = currTemp;
       heaterHandle();
@@ -68,7 +69,7 @@ static void heaterHandle() {
         }
 
         case HEATING_PROCESSING: {
-          if( millis() >= ( heatingTimeStart + heatingTimeGoal ) ) {  // time is up
+          if( millis() >= ( heatingTimeStart + heatingTimeRequested + heatingTimePauseTotal ) ) {  // time is up
             PID_Off();
             heaterState = HEATING_STOP;
 
@@ -131,7 +132,7 @@ void HEATER_setTemperature( uint16_t temp ) {
 
   if( xSemaphore != NULL ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      heatingTempGoal = ( MAXX6675_MAX_TEMP < temp ) ? MAXX6675_MAX_TEMP : temp;
+      heatingTempRequested = ( MAX_ALLOWED_TEMP < temp ) ? MAX_ALLOWED_TEMP : temp;
 
       xSemaphoreGive( xSemaphore );
     } else {
@@ -152,7 +153,7 @@ void HEATER_setTime( uint32_t time ) {
 
   if( xSemaphore != NULL ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      heatingTimeGoal = time;
+      heatingTimeRequested = time;
 
       xSemaphoreGive( xSemaphore );
     } else {
@@ -184,22 +185,17 @@ void HEATER_start( void ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
       switch( heaterState ) {
         case HEATING_STOP: {
-          PID_SetPoint( heatingTempGoal );
+          PID_SetPoint( heatingTempRequested );
           heatingTimeStart = millis();
+          heatingTimePauseTotal = 0;
           PID_On();
           heaterState = HEATING_PROCESSING;
           break;
         }
 
-        case HEATING_PROCESSING: {
-          // already in heating process
-          OTA_LogWrite( "HEATER(start): case not handled yet #2\n" );
-          break;
-        }
-
-        case HEATING_PAUSE: {
-          ///TODO: reasume heating process
-          OTA_LogWrite( "HEATER(start): case not handled yet #3\n" );
+        // case HEATING_PAUSE: use HEATER_pause() for this case
+        default: {
+          OTA_LogWrite( "HEATER(start): default case invoked" );
           break;
         }
       }
@@ -224,21 +220,24 @@ void HEATER_pause( void ) {
   if( xSemaphore != NULL ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
       switch( heaterState ) {
-        case HEATING_STOP: {
-          // nothing to pause
-          OTA_LogWrite( "HEATER(pause): case not handled yet #1\n" );
-          break;
-        }
-
         case HEATING_PROCESSING: {
-          ///TODO: handle pausing when processing
-          OTA_LogWrite( "HEATER(pause): case not handled yet #2\n" );
+          PID_Off();
+          heatingTimePauseStart = millis();
+          heaterState = HEATING_PAUSE;
           break;
         }
 
         case HEATING_PAUSE: {
-          // already paused
-          OTA_LogWrite( "HEATER(pause): case not handled yet #3\n" );
+          // recontinue processing
+          PID_On();
+          heatingTimePauseTotal += ( millis() - heatingTimePauseStart );
+          Serial.println( heatingTimePauseTotal );
+          heaterState = HEATING_PROCESSING;
+          break;
+        }
+
+        default: {
+          OTA_LogWrite( "HEATER(pause): default case invoked" );
           break;
         }
       }
@@ -263,23 +262,15 @@ void HEATER_stop( void ) {
   if( xSemaphore != NULL ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
       switch( heaterState ) {
-        case HEATING_STOP: {
-          // already stopped
-          OTA_LogWrite( "HEATER(stop): case not handled yet #1\n" );
-          break;
-        }
-
-        case HEATING_PROCESSING: {
-          ///TODO: handle stop when processing
-          PID_Off();
-          OTA_LogWrite( "HEATER(stop): case not handled yet #2\n" );
-          break;
-        }
-
+        case HEATING_PROCESSING:
         case HEATING_PAUSE: {
-          ///TODO: handle stop when pausing
           PID_Off();
-          OTA_LogWrite( "HEATER(stop): case not handled yet #3\n" );
+          heaterState = HEATING_STOP;
+          break;
+        }
+
+        default: {
+          OTA_LogWrite( "HEATER(stop): default case invoked" );
           break;
         }
       }
@@ -319,8 +310,23 @@ uint32_t HEATER_getTimeRemaining() {
 
   if( xSemaphore != NULL ) {
     if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      uint32_t timePassed = millis() - heatingTimeStart;
-      result = ( heatingTimeGoal <= timePassed ) ? 0 : ( heatingTimeGoal - timePassed );
+      switch( heaterState ) {
+        case HEATING_STOP: {
+          // nothing to do
+          result = 0;
+          break;
+        }
+
+        case HEATING_PROCESSING: {
+          result = heatingTimeRequested - ( millis() - ( heatingTimeStart + heatingTimePauseTotal ));
+          break;
+        }
+
+        case HEATING_PAUSE: {
+          result = heatingTimeRequested - ( heatingTimePauseStart - ( heatingTimeStart + heatingTimePauseTotal ) );
+          break;
+        }
+      }
       xSemaphoreGive( xSemaphore );
     } else {
       failSemaphoreCounter++;
