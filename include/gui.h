@@ -3,14 +3,16 @@
 
 #include <stdint.h>
 
-#define MAX_ALLOWED_TEMP      300
-#define MIN_ALLOWED_TEMP      30
+#define MINUTE_TO_MILLIS(m)   ((m) * 60 * 1000)
+#define HOUR_TO_MILLIS(h)     ((h) * 60 * 60 * 1000)
+#define MAX_ALLOWED_TIME      ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )   // 100 hours max
 
-enum operationButton {
-    BUTTON_START = 1,
-    BUTTON_PAUSE_STOP,
-    BUTTON_MAX_COUNT
-};
+typedef enum operationButton {
+    BUTTONS_START = 1,
+    BUTTONS_PAUSE_STOP,
+    BUTTONS_CONTINUE_STOP,
+    BUTTONS_MAX_COUNT
+} buttonsGroup_t;
 
 typedef void (* updateTimeCb)( uint32_t );
 typedef void (* updateTempCb)( uint16_t );
@@ -92,5 +94,17 @@ void GUI_setPauseCallback( operationCb func );
  * btnGroup         -   BUTTON_START or BUTTON_PAUSE_STOP
  */
 void GUI_setOperationButtons( enum operationButton btnGroup );
+
+/**
+ * Activate/deactivate possibility to set up time and temperature
+ * active           -   whether to activate settings
+ */
+void GUI_setChangingTimeTempPossible( bool active );
+
+/**
+ * Activate/deactivate label blinking (regarding TimerCurrent)
+ * active           -   whether to activate blinking
+ */
+void GUI_setBlinkTimeCurrent( bool active );
 
 #endif  // _GUI_H

@@ -4,12 +4,7 @@
 #include "buzzer.h"
 #include "myOTA.h"
 
-#define MINUTE_TO_MILLIS(m)   ((m) * 1000)
-#define HOUR_TO_MILLIS(h)     ((h) * 60 * 1000)
-#define MAX_ALLOWED_TIME      ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )
-
 typedef enum rollerType { ROLLER_TIME = 1, ROLLER_TEMP } roller_t;
-typedef enum buttonGroup { BUTTONS_START = 1, BUTTONS_STOP } buttonGroup_t;
 
 static lv_obj_t * tabView;    // main container for 3 tabs
 static lv_style_t styleTabs;  // has impact on tabs icons size
@@ -23,6 +18,8 @@ static lv_obj_t * labelCurrentTempVal;
 static lv_obj_t * labelCurrentTimeVal;
 static lv_obj_t * containerRoller;
 static lv_obj_t * containerButtons;
+static lv_obj_t * btnTime;
+static lv_obj_t * btnTemp;
 static lv_obj_t * roller1;
 static lv_obj_t * roller2;
 static lv_obj_t * roller3;
@@ -32,7 +29,10 @@ static updateTempCb tempChangedCB = NULL;
 static operationCb heatingStartCB = NULL;
 static operationCb heatingStopCB = NULL;
 static operationCb heatingPauseCB = NULL;
-static buttonGroup_t buttonsGroup;
+static buttonsGroup_t buttonsGroup;
+static uint16_t rollerTemp;
+static uint32_t rollerTime;
+static lv_timer_t * timer_blinkTimeCurrent;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -54,6 +54,7 @@ static void setContentHome();
 static void setContentList();
 static void setContentOptions();
 static void setScreenMain();
+static void blinkTimeCurrent( lv_timer_t * timer );
 
 /* Display flushing */
 static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uint8_t * color_p )
@@ -136,8 +137,10 @@ static void btnOkEventCb( lv_event_t * event ) {
     uint32_t t2 = lv_roller_get_selected( roller2 );
     uint32_t t3 = lv_roller_get_selected( roller3 );
 
+    rollerTemp = (uint16_t)(t1 * 100 + t2 * 10 + t3);
+
     if( NULL != tempChangedCB ) {
-      tempChangedCB( (uint16_t)(t1 * 100 + t2 * 10 + t3) );
+      tempChangedCB( rollerTemp );
     }
   }
   else if( ROLLER_TIME == *rType ) {
@@ -146,8 +149,10 @@ static void btnOkEventCb( lv_event_t * event ) {
     uint32_t m1 = lv_roller_get_selected( roller3 );
     uint32_t m2 = lv_roller_get_selected( roller4 );
 
+    rollerTime = HOUR_TO_MILLIS(h1 * 10 + h2) + MINUTE_TO_MILLIS(m1 * 10 + m2);
+
     if( NULL != timeChangedCB ) {
-      timeChangedCB( HOUR_TO_MILLIS(h1 * 10 + h2) + MINUTE_TO_MILLIS(m1 * 10 + m2) );
+      timeChangedCB( rollerTime );
     }
   }
 
@@ -233,7 +238,6 @@ static void rollerCreate( roller_t rType ) {
   lv_obj_set_style_text_font( roller1, &lv_font_montserrat_24, LV_PART_MAIN );
   lv_obj_set_width( roller1, ROLLER_WIDTH );
   lv_obj_add_style( roller1, &style_sel, LV_PART_SELECTED );
-  lv_roller_set_selected( roller1, 5, LV_ANIM_OFF );
 
   roller2 = lv_roller_create( containerRoller );
   lv_roller_set_options( roller2, opts9, LV_ROLLER_MODE_NORMAL );
@@ -254,6 +258,17 @@ static void rollerCreate( roller_t rType ) {
     lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 50, -35 );
     lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 135, -35 );
     lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 220, -35 );
+
+    uint32_t rTemp = rollerTemp;
+    uint8_t t1 = (uint16_t)(rTemp / 100);
+    rTemp -= ( t1 * 100 );
+    uint8_t t2 = (uint16_t)(rTemp / 10);
+    rTemp -= ( t2 * 10 );
+    uint8_t t3 = rTemp;
+
+    lv_roller_set_selected( roller1, (uint32_t)t1, LV_ANIM_OFF );
+    lv_roller_set_selected( roller2, (uint32_t)t2, LV_ANIM_OFF );
+    lv_roller_set_selected( roller3, (uint32_t)t3, LV_ANIM_OFF );
   }
   else if( ROLLER_TIME == rollerType ) {  // ROLLER_TIME
     lv_roller_set_options( roller1, opts9, LV_ROLLER_MODE_NORMAL );
@@ -269,6 +284,20 @@ static void rollerCreate( roller_t rType ) {
     lv_obj_set_width( roller4, ROLLER_WIDTH );
     lv_obj_add_style( roller4, &style_sel, LV_PART_SELECTED );
     lv_obj_align( roller4, LV_ALIGN_LEFT_MID, 260, -35 );
+
+    uint32_t rTime = rollerTime;
+    uint32_t h1 = (uint32_t)(rTime / HOUR_TO_MILLIS(10));
+    rTime -= ( h1 * HOUR_TO_MILLIS(10) );
+    uint32_t h2 = (uint32_t)(rTime / HOUR_TO_MILLIS(1));
+    rTime -= ( h2 * HOUR_TO_MILLIS(1) );
+    uint32_t m1 = (uint32_t)(rTime / MINUTE_TO_MILLIS(10));
+    rTime -= ( m1 * MINUTE_TO_MILLIS(10) );
+    uint32_t m2 = (uint32_t)(rTime / MINUTE_TO_MILLIS(1));
+
+    lv_roller_set_selected( roller1, (uint32_t)h1, LV_ANIM_OFF );
+    lv_roller_set_selected( roller2, (uint32_t)h2, LV_ANIM_OFF );
+    lv_roller_set_selected( roller3, (uint32_t)m1, LV_ANIM_OFF );
+    lv_roller_set_selected( roller4, (uint32_t)m2, LV_ANIM_OFF );
   }
 
   // buttons: OK & Cancel
@@ -325,7 +354,7 @@ static void createOperatingButtons() {
     lv_label_set_text( labelBtnStart, "START" );
     lv_obj_center( labelBtnStart );
   }
-  else if( BUTTONS_STOP == buttonsGroup ) {
+  else if( ( BUTTONS_PAUSE_STOP == buttonsGroup ) || ( BUTTONS_CONTINUE_STOP == buttonsGroup ) ) {
     lv_obj_t * btnPause = lv_button_create( containerButtons );
     lv_obj_t * btnStop = lv_button_create( containerButtons );
     lv_obj_set_style_width( btnPause, 180, 0 );
@@ -341,7 +370,14 @@ static void createOperatingButtons() {
 
     lv_obj_t * labelBtnPause = lv_label_create( btnPause );
     lv_obj_t * labelBtnStop = lv_label_create( btnStop );
-    lv_label_set_text( labelBtnPause, "PAUSE" );
+
+    if( BUTTONS_CONTINUE_STOP == buttonsGroup ) {
+      lv_label_set_text( labelBtnPause, "CONTINUE" );
+    }
+    else {
+      lv_label_set_text( labelBtnPause, "PAUSE" );
+    }
+
     lv_label_set_text( labelBtnStop, "STOP" );
     lv_obj_center( labelBtnPause );
     lv_obj_center( labelBtnStop );
@@ -361,8 +397,8 @@ static void setContentHome() {
   /*Add content to the tabs*/
   lv_obj_t * labelTime = lv_label_create( tabHome );
   lv_obj_t * labelTemp = lv_label_create( tabHome );
-  lv_obj_t * btnTime = lv_button_create( tabHome );
-  lv_obj_t * btnTemp = lv_button_create( tabHome );
+  btnTime = lv_button_create( tabHome );
+  btnTemp = lv_button_create( tabHome );
 
   // lv_label_set_text( labelTime, "[00:00]\nTime[h:m]\n00:00" ); // used for adjusting label position
   // lv_label_set_text( labelTemp, "[---]\nTemp[°C]\n123" );      // used for adjusting label position
@@ -426,8 +462,7 @@ static void setContentHome() {
   lv_obj_align( btnTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
   lv_obj_remove_flag( btnTime, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( btnTemp, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnTime, timeEventCb, LV_EVENT_CLICKED, NULL );
-  lv_obj_add_event_cb( btnTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
+  GUI_setChangingTimeTempPossible( true );
 
   buttonsGroup = BUTTONS_START; // show Start button by default
   createOperatingButtons();
@@ -497,6 +532,24 @@ static void setScreenMain() {
   setContentOptions();
 }
 
+static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
+  static bool isVisible = true;
+
+  ( void )isVisible;  // suppress CppCheck warning (variableScope)
+
+  if( NULL != labelCurrentTimeVal ) {
+    Serial.println("BLINK_TOGGLE");
+    if( isVisible ){
+      lv_obj_set_style_text_color( labelCurrentTimeVal, {0xD3,0xD3,0xD3}, 0 );
+      isVisible = false;
+    }
+    else {
+      lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      isVisible = true;
+    }
+  }
+}
+
 void GUI_Init() {
     
   uint16_t calData[5] = { 265, 3677, 261, 3552, 1 };
@@ -521,6 +574,9 @@ void GUI_Init() {
   lv_indev_add_event_cb( indev, touchEventCb, LV_EVENT_CLICKED, NULL );
 
   setScreenMain();
+
+  timer_blinkTimeCurrent = lv_timer_create( blinkTimeCurrent, 250,  NULL );
+  lv_timer_pause( timer_blinkTimeCurrent );
 }
 
 void GUI_Handle( uint32_t tick_period ) {
@@ -543,12 +599,7 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   uint16_t t = temp;
   uint16_t t1, t2, t3;
 
-  if( MAX_ALLOWED_TEMP < t ) {
-    t = MAX_ALLOWED_TEMP;
-  }
-  if( MIN_ALLOWED_TEMP > t ) {
-    t = MIN_ALLOWED_TEMP;
-  }
+  rollerTemp = t;
 
   t1 = (uint16_t)(t / 100);
   t -= ( t1 * 100 );
@@ -557,7 +608,7 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   t3 = t;
 
   buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = '0' + t2;
+  buff[1] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
   buff[2] = '0' + t3;
   buff[3] = '\0';
 
@@ -599,6 +650,8 @@ void GUI_SetTargetTime( uint32_t time ) {
     t = MAX_ALLOWED_TIME;
   }
 
+  rollerTime = t;
+
   h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
   t -= ( h1 * HOUR_TO_MILLIS(10) );
   h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
@@ -615,6 +668,7 @@ void GUI_SetTargetTime( uint32_t time ) {
   buff[5] = '0' + m2;
   buff[6] = ']';
   buff[7] = '\0';
+
   lv_label_set_text( labelTargetTimeVal, buff );
   // lv_label_set_text( labelTargetTimeVal, "[00:00]" );  // used for adjusting label position
 }
@@ -643,8 +697,10 @@ void GUI_SetCurrentTime( uint32_t time ) {
   buff[4] = '0' + m2;
   buff[5] = '\0';
 
-  lv_label_set_text( labelCurrentTimeVal, buff );
-  // lv_label_set_text( labelCurrentTimeVal, "00:00" );  // used for adjusting label position
+  if( NULL != labelCurrentTimeVal ) {
+    lv_label_set_text( labelCurrentTimeVal, buff );
+    // lv_label_set_text( labelCurrentTimeVal, "00:00" );  // used for adjusting label position
+  }
 }
 
 void GUI_setTimeCallback( updateTimeCb func ) {
@@ -678,12 +734,41 @@ void GUI_setPauseCallback( operationCb func ) {
 }
 
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
-  if( BUTTON_START == btnGroup ) {
-    buttonsGroup = BUTTONS_START;
+  if( BUTTONS_MAX_COUNT > btnGroup ) {
+    buttonsGroup = btnGroup;
     createOperatingButtons();
   }
-  else if( BUTTON_PAUSE_STOP == btnGroup ) {
-    buttonsGroup = BUTTONS_STOP;
-    createOperatingButtons();
+  else {
+    buttonsGroup = (buttonsGroup_t)0; // wrong enum received
+  }
+}
+
+void GUI_setChangingTimeTempPossible( bool active ) {
+  if( active ) {
+    lv_obj_add_event_cb( btnTime, timeEventCb, LV_EVENT_CLICKED, NULL );
+    lv_obj_add_event_cb( btnTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
+  }
+  else {
+    lv_obj_remove_event_cb( btnTime, timeEventCb );
+    lv_obj_remove_event_cb( btnTemp, tempEventCb );
+  }
+}
+
+void GUI_setBlinkTimeCurrent( bool active ) {
+  if( NULL == timer_blinkTimeCurrent ) {
+    return;
+  }
+
+  if( NULL != labelCurrentTimeVal ) {
+    if( active ) {
+      lv_timer_resume( timer_blinkTimeCurrent );
+      Serial.println("BLINK_START");
+    }
+    else {
+      lv_timer_pause( timer_blinkTimeCurrent );
+      // set proper label color here, just in case it's changed when stopping blinking
+      lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      Serial.println("BLINK_STOP");
+    }
   }
 }
