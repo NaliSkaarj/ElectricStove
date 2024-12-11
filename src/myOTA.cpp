@@ -5,6 +5,7 @@
 
 WiFiServer server( PORT ); // server port to listen on
 WiFiClient client;
+bool initialized = false;
 
 void OTA_LogWrite( const char *buf ) {
   if ( client && client.connected() ) {
@@ -17,14 +18,20 @@ void OTA_LogWrite( const int x ) {
 }
 
 void OTA_Setup() {
+  uint8_t tryAgain = 3;
   ArduinoOTA.setHostname( OTA_HOST_NAME );
   Serial.println( "OTA setup" );
   WiFi.mode( WIFI_STA );
   WiFi.begin( wifi_SSID, wifi_PASS );
+  initialized = true;
   while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
-    Serial.println( "Connection Failed! Rebooting..." );
+    Serial.println( "WiFi connection Failed! Retrying..." );
+    tryAgain--;
+    if( 0 == tryAgain ) {
+      initialized = false;  // no WiFi == no OTA
+      return;
+    }
     delay( 5000 );
-    ESP.restart();
   }
 
   // Port defaults to 3232
@@ -81,6 +88,10 @@ void OTA_Setup() {
 }
 
 void OTA_Handle() {
+  if( false == initialized ) {
+    return;
+  }
+
   ArduinoOTA.handle();
 
   if ( WiFi.status() == WL_CONNECTED ) {
