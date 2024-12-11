@@ -94,7 +94,16 @@ void loop() {
   // handle stuff every 100 miliseconds
   if( currentTime >= next100mS ) {
     GUI_SetCurrentTemp( (uint16_t)HEATER_getCurrentTemperature() );
-    GUI_SetCurrentTime( HEATER_getTimeRemaining() );
+    uint32_t timeRemaining = HEATER_getTimeRemaining();
+
+    // show time with seconds when time is less than 1h
+    if( MINUTES_TO_MS(60) > timeRemaining ) {
+      timeRemaining = MM_SS_TO_HH_MM( timeRemaining );
+    }
+
+    OTA_LogWrite( timeRemaining );
+    // Serial.println(timeRemaining);
+    GUI_SetCurrentTime( timeRemaining );
     next100mS += 100;
   }
 
@@ -120,7 +129,7 @@ void loop() {
         HEATER_start();
 
         // hide "Start" button, show "Pause" and "Stop" buttons
-        GUI_setOperationButtons( BUTTON_PAUSE_STOP );
+        GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING;
@@ -133,14 +142,14 @@ void loop() {
     case STATE_HEATING: {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
-        GUI_setOperationButtons( BUTTON_START );
+        GUI_setOperationButtons( BUTTONS_START );
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause();
-        GUI_setOperationButtons( BUTTON_PAUSE_STOP );
+        GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING_PAUSE;
@@ -150,14 +159,14 @@ void loop() {
     case STATE_HEATING_PAUSE: {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
-        GUI_setOperationButtons( BUTTON_START );
+        GUI_setOperationButtons( BUTTONS_START );
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_start();
-        GUI_setOperationButtons( BUTTON_PAUSE_STOP );
+        GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING;

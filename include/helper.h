@@ -1,6 +1,8 @@
 #ifndef _HELPER_H
 #define _HELPER_H
 
+#define MM_SS_TO_HH_MM(a)       ((a) * 60)
+
 typedef enum heater_state {
     STATE_IDLE = 0,
     STATE_START_REQUESTED,
