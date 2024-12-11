@@ -10,6 +10,7 @@ heater_state heaterStateRequested = STATE_IDLE;
 unsigned long currentTime, next10S, next1S, next10mS, next100mS;
 static uint32_t targetHeatingTime;
 static uint16_t targetHeatingTemp;
+static xTimerHandle xTimer;
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
@@ -18,6 +19,14 @@ static void updateTime( uint32_t time ) {
 
 static void updateTemp( uint16_t temp ) {
   targetHeatingTemp = temp;
+
+  if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
+    targetHeatingTemp = MAX_ALLOWED_TEMP;
+  }
+  if( MIN_ALLOWED_TEMP > targetHeatingTemp ) {
+    targetHeatingTemp = MIN_ALLOWED_TEMP;
+  }
+
   GUI_SetTargetTemp( targetHeatingTemp );
 }
 
@@ -69,7 +78,7 @@ void setup() {
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
 
   // test timer feature
-  xTimerHandle xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
+  xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
   xTimerStart( xTimer, 5000 );
 
   currentTime = next10S = next1S = next10mS = millis();
@@ -123,19 +132,31 @@ void loop() {
   switch( heaterState ) {
     case STATE_IDLE: {
       // check against started heating
-      if( STATE_START_REQUESTED == heaterStateRequested ) {
+      if( STATE_START_REQUESTED == heaterStateRequested ) { // in STATE_IDLE only STATE_START_REQUESTED allowed
+        if( MAX_ALLOWED_TIME < targetHeatingTime ) {
+          targetHeatingTime = MAX_ALLOWED_TIME;
+        }
+        if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
+          targetHeatingTemp = MAX_ALLOWED_TEMP;
+        }
+        if( MIN_ALLOWED_TEMP > targetHeatingTemp ) {
+          targetHeatingTemp = MIN_ALLOWED_TEMP;
+        }
+
+        GUI_SetTargetTime( targetHeatingTime );
+        GUI_SetTargetTemp( targetHeatingTemp );
+
         HEATER_setTime( targetHeatingTime );
         HEATER_setTemperature( (uint16_t)targetHeatingTemp );
         HEATER_start();
 
         // hide "Start" button, show "Pause" and "Stop" buttons
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
+        GUI_setChangingTimeTempPossible( false );
+        GUI_setBlinkTimeCurrent( false );    // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING;
-      }
-      else {
-        heaterStateRequested = STATE_IDLE;  // in STATE_IDLE only STATE_START_REQUESTED allowed
       }
       break;
     }
@@ -143,13 +164,17 @@ void loop() {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
+        GUI_setChangingTimeTempPossible( true );
+        GUI_setBlinkTimeCurrent( false );   // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause();
-        GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
+        GUI_setOperationButtons( BUTTONS_CONTINUE_STOP );
+        GUI_setChangingTimeTempPossible( false );
+        GUI_setBlinkTimeCurrent( true );   // blinking 'TimeCurrent' indicate PAUSE active
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING_PAUSE;
@@ -160,13 +185,17 @@ void loop() {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
+        GUI_setChangingTimeTempPossible( true );
+        GUI_setBlinkTimeCurrent( false );    // stop blinking (stop heating)
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
-        HEATER_start();
+        HEATER_pause(); // continue processing (same API function for 'unpause')
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
+        GUI_setChangingTimeTempPossible( false );
+        GUI_setBlinkTimeCurrent( false );    // stop blinking (continue heating)
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING;
