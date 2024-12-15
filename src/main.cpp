@@ -152,7 +152,7 @@ void loop() {
 
         // hide "Start" button, show "Pause" and "Stop" buttons
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
-        GUI_setChangingTimeTempPossible( false );
+        GUI_setTimeTempChangeAllowed( false );
         GUI_setBlinkTimeCurrent( false );    // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
@@ -164,7 +164,7 @@ void loop() {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
-        GUI_setChangingTimeTempPossible( true );
+        GUI_setTimeTempChangeAllowed( true );
         GUI_setBlinkTimeCurrent( false );   // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
@@ -173,7 +173,7 @@ void loop() {
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause();
         GUI_setOperationButtons( BUTTONS_CONTINUE_STOP );
-        GUI_setChangingTimeTempPossible( false );
+        GUI_setTimeTempChangeAllowed( false );
         GUI_setBlinkTimeCurrent( true );   // blinking 'TimeCurrent' indicate PAUSE active
 
         heaterStateRequested = STATE_IDLE;
@@ -185,7 +185,7 @@ void loop() {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
-        GUI_setChangingTimeTempPossible( true );
+        GUI_setTimeTempChangeAllowed( true );
         GUI_setBlinkTimeCurrent( false );    // stop blinking (stop heating)
 
         heaterStateRequested = STATE_IDLE;
@@ -194,7 +194,7 @@ void loop() {
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause(); // continue processing (same API function for 'unpause')
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
-        GUI_setChangingTimeTempPossible( false );
+        GUI_setTimeTempChangeAllowed( false );
         GUI_setBlinkTimeCurrent( false );    // stop blinking (continue heating)
 
         heaterStateRequested = STATE_IDLE;

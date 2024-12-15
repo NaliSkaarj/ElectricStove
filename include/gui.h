@@ -99,7 +99,7 @@ void GUI_setOperationButtons( enum operationButton btnGroup );
  * Activate/deactivate possibility to set up time and temperature
  * active           -   whether to activate settings
  */
-void GUI_setChangingTimeTempPossible( bool active );
+void GUI_setTimeTempChangeAllowed( bool active );
 
 /**
  * Activate/deactivate label blinking (regarding TimerCurrent)

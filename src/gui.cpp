@@ -462,7 +462,7 @@ static void setContentHome() {
   lv_obj_align( btnTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
   lv_obj_remove_flag( btnTime, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( btnTemp, LV_OBJ_FLAG_PRESS_LOCK );
-  GUI_setChangingTimeTempPossible( true );
+  GUI_setTimeTempChangeAllowed( true );
 
   buttonsGroup = BUTTONS_START; // show Start button by default
   createOperatingButtons();
@@ -743,7 +743,7 @@ void GUI_setOperationButtons( enum operationButton btnGroup ) {
   }
 }
 
-void GUI_setChangingTimeTempPossible( bool active ) {
+void GUI_setTimeTempChangeAllowed( bool active ) {
   if( active ) {
     lv_obj_add_event_cb( btnTime, timeEventCb, LV_EVENT_CLICKED, NULL );
     lv_obj_add_event_cb( btnTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
