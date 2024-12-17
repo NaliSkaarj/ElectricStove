@@ -1,6 +1,10 @@
 #ifndef _MAX6675_H
 #define _MAX6675_H
 
+#define TEMP_READ_INTERVAL      1000        // in millis
+#define MAX6675_STACK_SIZE      1536
+#define MAX6675_TASK_PRIORITY   3
+
 /**
  * Need to be called from main Setup/Init function to run the service
  * _SCLK      - SPI clock pin

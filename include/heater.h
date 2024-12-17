@@ -8,7 +8,7 @@
 #define HEATER_MAX6675_CS       9
 
 #define MAX_ALLOWED_TEMP        300
-#define MIN_ALLOWED_TEMP        30
+#define MIN_ALLOWED_TEMP        1
 #define MINUTES_TO_MS(m)        ( (m) * 60 * 1000)
 
 typedef void (* heaterDoneCb)( void );
