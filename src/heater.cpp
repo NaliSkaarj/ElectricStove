@@ -44,16 +44,15 @@ static void vTaskHeater( void * pvParameters ) {
     && MAX_ALLOWED_TEMP >= currTemp
     ) {
       currentTemperature = currTemp;
-      heaterHandle();
     } else {
       badTemparature++;
-      currentTemperature = 0.0f;
       if( BAD_TEMP_CNT_RISE_ERROR < badTemparature ) {
         badTemparature = 0;
         BUZZ_Add( 0, 200, 100, 10 );
         OTA_LogWrite( "HEATER(task): max6675 temp read fail\n" );
       }
     }
+    heaterHandle();
 
     vTaskDelay( PID_INTERVAL_COMPUTE / portTICK_PERIOD_MS );
   }
