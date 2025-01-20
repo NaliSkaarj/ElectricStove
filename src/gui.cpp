@@ -552,7 +552,7 @@ static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
 
 void GUI_Init() {
     
-  uint16_t calData[5] = { 265, 3677, 261, 3552, 1 };
+  uint16_t calData[5] = { 265, 3677, 261, 3552, 1 };  // check branch TouchscreenCalibration for those values
   tft.init();
   tft.setRotation( 3 );
   tft.setSwapBytes( true );
@@ -771,4 +771,8 @@ void GUI_setBlinkTimeCurrent( bool active ) {
       Serial.println("BLINK_STOP");
     }
   }
+}
+
+SPIClass * GUI_getSPIinstance() {
+  return &(tft.getSPIinstance());
 }

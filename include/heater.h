@@ -1,10 +1,10 @@
 #ifndef _HEATER_H
 #define _HEATER_H
 
+#include "SPI.h"
+
 #define HEATER_STACK_SIZE       2048
 #define HEATER_TASK_PRIORITY    3
-#define HEATER_MAX6675_CLK      18
-#define HEATER_MAX6675_MISO     19
 #define HEATER_MAX6675_CS       9
 
 #define MAX_ALLOWED_TEMP        300
@@ -15,8 +15,9 @@ typedef void (* heaterDoneCb)( void );
 
 /**
  * Need to be called from main Setup/Init function to run the service
+ * spi      - pointer to SPI instance which will be used for communication
  */
-void HEATER_Init( void );
+void HEATER_Init( SPIClass * spi );
 
 /**
  * Set target temperature

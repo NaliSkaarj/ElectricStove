@@ -61,20 +61,19 @@ size_t getArduinoLoopTaskStackSize(void) {
 }
 
 void setup() {
-  // input = 20;
   Serial.begin( 115200 );
 
   OTA_Setup();
   BUZZ_Init();
   GUI_Init();
-  HEATER_Init();
+  HEATER_Init( GUI_getSPIinstance() );
   HEATER_setCallback( heatingDone );
 
   // GUI callbacks
   GUI_setTimeCallback( updateTime );      // time will be updated when changed
   GUI_setTempCallback( updateTemp );      // temp will be updated when changed
   GUI_setStartCallback( heatingStart );   // START heating was clicked
-  GUI_setStopCallback( heatingStop );    // STOP heating was clicked
+  GUI_setStopCallback( heatingStop );     // STOP heating was clicked
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
 
   // test timer feature

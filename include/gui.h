@@ -2,6 +2,7 @@
 #define _GUI_H
 
 #include <stdint.h>
+#include "SPI.h"
 
 #define MINUTE_TO_MILLIS(m)   ((m) * 60 * 1000)
 #define HOUR_TO_MILLIS(h)     ((h) * 60 * 60 * 1000)
@@ -106,5 +107,10 @@ void GUI_setTimeTempChangeAllowed( bool active );
  * active           -   whether to activate blinking
  */
 void GUI_setBlinkTimeCurrent( bool active );
+
+/**
+ * Get SPI instance used by TFT driver
+ */
+SPIClass * GUI_getSPIinstance( void );
 
 #endif  // _GUI_H

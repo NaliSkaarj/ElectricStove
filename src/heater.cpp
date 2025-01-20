@@ -103,7 +103,7 @@ static void heaterHandle() {
   }
 }
 
-void HEATER_Init( void ) {
+void HEATER_Init( SPIClass * spi ) {
   if( true == initialized ) {
     return;
   }
@@ -117,7 +117,7 @@ void HEATER_Init( void ) {
   }
 
   PID_Init();
-  MAX6675_Init( HEATER_MAX6675_CLK, HEATER_MAX6675_CS, HEATER_MAX6675_MISO );
+  MAX6675_Init( spi, HEATER_MAX6675_CS );
 
   xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
 
