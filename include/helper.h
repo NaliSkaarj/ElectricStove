@@ -10,7 +10,6 @@ typedef enum heater_state {
     STATE_PAUSE_REQUESTED,
     STATE_HEATING_PAUSE,
     STATE_STOP_REQUESTED,
-    STATE_HEATING_STOP,
     STATE_MAX
 } heater_state;
 
