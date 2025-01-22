@@ -4,7 +4,7 @@
 #include "myOTA.h"
 #include "buzzer.h"
 #include "helper.h"
-#include "sdcard.h"
+#include "config.h"
 
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
@@ -12,9 +12,6 @@ unsigned long currentTime, next10S, next1S, next10mS, next100mS;
 static uint32_t targetHeatingTime;
 static uint16_t targetHeatingTemp;
 static xTimerHandle xTimer;
-
-String dataMessage;
-void writeFile(fs::FS &fs, const char * path, const char * message);
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
@@ -72,7 +69,7 @@ void setup() {
   GUI_Init();
   HEATER_Init( GUI_getSPIinstance() );
   HEATER_setCallback( heatingDone );
-  SDCARD_Setup( GUI_getSPIinstance() );
+  CONF_Init( GUI_getSPIinstance() );
 
   // GUI callbacks
   GUI_setTimeCallback( updateTime );      // time will be updated when changed
@@ -125,14 +122,15 @@ void loop() {
     Serial.print( "*" );
     OTA_LogWrite( "?" );
     next1S += 1000;
-    SDCARD_list();
   }
 
   // handle stuff every 10 second
   if( currentTime >= next10S ) {
     next10S += 10000;
     BUZZ_Add( 100 );
-    // SDCARD_log();
+    Serial.println( ((String)CONF_getOption( BUZZER_MENU )).c_str() );
+    Serial.println( ((String)CONF_getOption( BUZZER_HEATING )).c_str() );
+    Serial.println( ((String)CONF_getOption( OTA_ACTIVE )).c_str() );
   }
 
   switch( heaterState ) {

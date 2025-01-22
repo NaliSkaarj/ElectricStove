@@ -152,3 +152,48 @@ void SDCARD_list() {
     Serial.printf( "listing time: %llu[uS]\n", micros() - start );
   }
 }
+
+int SDCARD_readFile( const char * path ) {
+  int retVal = 0;
+
+  if( false == cardAvailable ) {
+    Serial.println( "SDCARD(readFile): No SDCard" );
+    return -1;
+  }
+
+  File file = SD.open( path, FILE_READ );
+
+  if( !file ) {
+    Serial.println( "SDCARD(readFile): Failed to open file, creating file" );
+    writeFile( SD, path, "-1" );
+    return -1;
+  }
+
+  retVal = file.read();
+  file.close();
+
+  return retVal;
+}
+
+void SDCARD_writeFile( const char * path, int value ) {
+  if( false == cardAvailable ) {
+    Serial.println( "SDCARD(writeFile): No SDCard" );
+    return;
+  }
+
+  File file = SD.open( path, FILE_WRITE );
+
+  if( !file ) {
+    Serial.println( "SDCARD(writeFile): Failed to open file, creating file" );
+    writeFile( SD, path, String(value).c_str() );
+    return;
+  }
+
+  if( file.print( value ) ) {
+    Serial.println( "SDCARD(writeFile): Write success" );
+  } else {
+    Serial.println( "SDCARD(writeFile): Write failed" );
+  }
+
+  file.close();
+}
