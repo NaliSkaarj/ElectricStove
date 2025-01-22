@@ -47,6 +47,28 @@ static void appendFile( fs::FS &fs, const char * path, const char * message ) {
   file.close();
 }
 
+static void printDirectory( File dir, int numTabs ) {
+  while ( true ) {
+    File entry = dir.openNextFile();
+    if ( !entry ) {
+      // no more files
+      break;
+    }
+    for ( uint8_t i = 0; i < numTabs; i++ ) {
+      Serial.print( '\t' );
+    }
+    Serial.print( entry.name() );
+    if ( entry.isDirectory() ) {
+      Serial.println( "/" );
+      printDirectory( entry, numTabs + 1 );
+    } else {
+      Serial.print( "\t\t" );
+      Serial.println( entry.size(), DEC );
+    }
+    entry.close();
+  }
+}
+
 void SDCARD_Setup( SPIClass * spi ) {
   if( NULL == spi ) {
     return;
@@ -106,4 +128,17 @@ void SDCARD_log() {
   // Serial.print( "Save data: " );
   // Serial.println( dataMessage );
   appendFile( SD, "/data.txt", dataMessage.c_str() );
+}
+
+void SDCARD_list() {
+  if( !cardAvailable ) {
+    return;
+  }
+
+  File root = SD.open( "/" );
+  if( root ) {
+    unsigned long start = micros();
+    printDirectory( root, 0 );
+    Serial.printf( "listing time: %llu[uS]\n", micros() - start );
+  }
 }

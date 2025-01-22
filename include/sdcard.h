@@ -7,5 +7,6 @@
 
 void SDCARD_Setup( SPIClass * spi );
 void SDCARD_log();
+void SDCARD_list();
 
 #endif  // _SDCARD_H_

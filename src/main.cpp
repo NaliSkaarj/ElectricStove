@@ -125,13 +125,14 @@ void loop() {
     Serial.print( "*" );
     OTA_LogWrite( "?" );
     next1S += 1000;
+    SDCARD_list();
   }
 
   // handle stuff every 10 second
   if( currentTime >= next10S ) {
     next10S += 10000;
     BUZZ_Add( 100 );
-    SDCARD_log();
+    // SDCARD_log();
   }
 
   switch( heaterState ) {
