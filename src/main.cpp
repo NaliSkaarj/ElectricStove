@@ -72,7 +72,7 @@ void setup() {
   GUI_Init();
   HEATER_Init( GUI_getSPIinstance() );
   HEATER_setCallback( heatingDone );
-  SDCARD_Setup();
+  SDCARD_Setup( GUI_getSPIinstance() );
 
   // GUI callbacks
   GUI_setTimeCallback( updateTime );      // time will be updated when changed

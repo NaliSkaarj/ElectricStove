@@ -5,7 +5,7 @@
 
 #define SD_CS 14
 
-void SDCARD_Setup();
+void SDCARD_Setup( SPIClass * spi );
 void SDCARD_log();
 
 #endif  // _SDCARD_H_

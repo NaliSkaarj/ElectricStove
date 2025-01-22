@@ -1,6 +1,7 @@
 #include "sdcard.h"
 
 static bool cardAvailable = false;
+static SPIClass * sharedSPI;
 
 static void writeFile( fs::FS &fs, const char * path, const char * message ) {
   if( false == cardAvailable ) {
@@ -46,11 +47,14 @@ static void appendFile( fs::FS &fs, const char * path, const char * message ) {
   file.close();
 }
 
-void SDCARD_Setup() {
-  // Initialize SD card
-  SD.begin( SD_CS );  
+void SDCARD_Setup( SPIClass * spi ) {
+  if( NULL == spi ) {
+    return;
+  }
 
-  if( !SD.begin( SD_CS ) ) {
+  sharedSPI = spi;
+
+  if( !SD.begin( SD_CS, *sharedSPI ) ) {
     Serial.println( "Card Mount Failed" );
     return;
   }
@@ -61,6 +65,20 @@ void SDCARD_Setup() {
     Serial.println( "No SD card attached" );
     return;
   }
+
+  Serial.print("SD Card Type: ");
+  if (cardType == CARD_MMC) {
+    Serial.println("MMC");
+  } else if (cardType == CARD_SD) {
+    Serial.println("SDSC");
+  } else if (cardType == CARD_SDHC) {
+    Serial.println("SDHC");
+  } else {
+    Serial.println("UNKNOWN");
+  }
+
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
   cardAvailable = true;
 
@@ -80,6 +98,10 @@ void SDCARD_Setup() {
 }
 
 void SDCARD_log() {
+  if( !cardAvailable ) {
+    return;
+  }
+
   String dataMessage = String(millis()) + "," + String(34) + "," + String(56) + "," + String(78) + "\r\n";
   // Serial.print( "Save data: " );
   // Serial.println( dataMessage );
