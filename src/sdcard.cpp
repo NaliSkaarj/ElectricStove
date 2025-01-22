@@ -69,23 +69,19 @@ static void printDirectory( File dir, int numTabs ) {
   }
 }
 
-void SDCARD_Setup( SPIClass * spi ) {
-  if( NULL == spi ) {
-    return;
-  }
-
-  sharedSPI = spi;
-
+static bool initializeSdCard() {
   if( !SD.begin( SD_CS, *sharedSPI ) ) {
     Serial.println( "Card Mount Failed" );
-    return;
+    cardAvailable = false;
+    return false;
   }
 
   uint8_t cardType = SD.cardType();
 
   if( cardType == CARD_NONE ) {
     Serial.println( "No SD card attached" );
-    return;
+    cardAvailable = false;
+    return false;
   }
 
   Serial.print("SD Card Type: ");
@@ -103,6 +99,20 @@ void SDCARD_Setup( SPIClass * spi ) {
   Serial.printf("SD Card Size: %lluMB\n", cardSize);
 
   cardAvailable = true;
+
+  return true;
+}
+
+void SDCARD_Setup( SPIClass * spi ) {
+  if( NULL == spi ) {
+    return;
+  }
+
+  sharedSPI = spi;
+
+  if( false == initializeSdCard() ) {
+    return;
+  }
 
   // If the data.txt file doesn't exist
   // Create a file on the SD card and write the data labels
