@@ -197,3 +197,30 @@ void SDCARD_writeFile( const char * path, int value ) {
 
   file.close();
 }
+
+void SDCARD_writeFile( const char * path, const char * msg ) {
+  writeFile( SD, path, msg );
+}
+
+uint32_t SDCARD_readFileContent( const char * path, uint8_t * buf, size_t len ) {
+  uint32_t retVal = 0;
+
+  if( NULL == buf ) {
+    return retVal;
+  }
+
+  File file = SD.open( path, FILE_READ );
+  if( file ) {
+    int rlen = file.available();
+
+    if( len >= rlen && 0 < rlen ) {
+      retVal = (uint32_t)( file.read( buf, len ) );
+    }
+    else {
+      Serial.println( "SDCARD(readFileContent): Buffer size to small" );
+    }
+    file.close();
+  }
+
+  return retVal;
+}

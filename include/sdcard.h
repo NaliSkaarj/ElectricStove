@@ -24,4 +24,21 @@ int SDCARD_readFile( const char * path );
  */
 void SDCARD_writeFile( const char * path, int value );
 
+/**
+ * Write content to file
+ * path     - path to file
+ * msg      - constant char to be writen as file content
+ */
+void SDCARD_writeFile( const char * path, const char * msg );
+
+/**
+ * Read content file to buffer
+ * path     - path to a file
+ * buf      - pointer to buffer
+ * len      - buffer length
+ * 
+ * return   - read bytes
+ */
+uint32_t SDCARD_readFileContent( const char * path, uint8_t * buf, size_t len );
+
 #endif  // _SDCARD_H_

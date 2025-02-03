@@ -12,6 +12,8 @@ unsigned long currentTime, next10S, next1S, next10mS, next100mS;
 static uint32_t targetHeatingTime;
 static uint16_t targetHeatingTemp;
 static xTimerHandle xTimer;
+static bakeName *bakeNames = NULL;
+static uint32_t bakeCount;
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
@@ -78,6 +80,8 @@ void setup() {
   GUI_setStopCallback( heatingStop );     // STOP heating was clicked
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
 
+  CONF_getBakeNames( &bakeNames, &bakeCount );
+
   // test timer feature
   xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
   xTimerStart( xTimer, 5000 );
@@ -131,6 +135,9 @@ void loop() {
     Serial.println( ((String)CONF_getOption( BUZZER_MENU )).c_str() );
     Serial.println( ((String)CONF_getOption( BUZZER_HEATING )).c_str() );
     Serial.println( ((String)CONF_getOption( OTA_ACTIVE )).c_str() );
+    for( int x=0; x<bakeCount; x++) {
+      Serial.printf( "bakeNames[%d]: %s\n", x, bakeNames+x );
+    }
   }
 
   switch( heaterState ) {
