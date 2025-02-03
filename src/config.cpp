@@ -11,7 +11,8 @@ typedef struct option
 
 static bool configAvailable = false;
 static option_t options[ OPTIONS_COUNT ];
-static bake_t bakeList[ BAKES_COUNT ];
+static bake_t * bakeList = NULL;          //dynamically allocated buffer
+static uint32_t bakesCount = 0;
 static JsonDocument doc;
 
 static void loadConfiguration() {
@@ -68,17 +69,23 @@ static void setBakesDefault() {
 static void loadBakesFromFile() {
   uint8_t * buffer = NULL;
   uint32_t rlen;
-  int cnt = 0;
 
-  rlen = SDCARD_getFileContent( "/bakes.txt", &buffer );
+  rlen = SDCARD_getFileContent( BAKE_FILE_NAME, &buffer );
   if( NULL != buffer ) {
     buffer[ rlen ] = '\0';
     // Serial.printf( "buffer[%d]: %s\n", rlen, buffer );
 
     deserializeJson( doc, buffer );
-    cnt = doc["count"];
+    bakesCount = doc["count"];
 
-    for( int i = 0; i < cnt; i++ ) {
+    // allocate memory for bakeList
+    bakeList = (bake_t *)malloc( sizeof( bake_t ) * bakesCount );
+    if( NULL == bakeList ) {
+      free( buffer );
+      return;
+    }
+
+    for( int i = 0; i < bakesCount; i++ ) {
       strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof( bakeList[i].name ) );
       bakeList[i].temp = doc["data"][i]["temp"];
       bakeList[i].time = doc["data"][i]["time"];
@@ -88,7 +95,7 @@ static void loadBakesFromFile() {
   }
 
   Serial.println( "bakeList:" );
-  for( int i = 0; i < cnt; i++ ) {
+  for( int i = 0; i < bakesCount; i++ ) {
     Serial.printf( "[%d]Name:%s;Temp:%d;Time:%d\n", i, bakeList[i].name, bakeList[i].temp, bakeList[i].time );
   }
 }
@@ -128,7 +135,11 @@ void CONF_setOption( enum options option, int val ) {
 void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {
   bakeName * bakeNames;
 
-  bakeNames = (bakeName *)malloc( sizeof(bakeName) * BAKES_COUNT );
+  if( NULL == bakeList ) {
+    return;
+  }
+
+  bakeNames = (bakeName *)malloc( sizeof(bakeName) * bakesCount );
   if( NULL == bakeNames ) {
     *bList = NULL;
     *cnt = 0;
@@ -136,29 +147,29 @@ void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {
     return;
   }
 
-  *cnt = BAKES_COUNT;
+  *cnt = bakesCount;
   *bList = bakeNames;
-  for( int x=0; x<BAKES_COUNT; x++) {
+  for( int x=0; x<bakesCount; x++) {
     snprintf( (char *)(*bList+x), sizeof(bakeName), "%s", bakeList[x].name );
   }
 }
 
 uint32_t CONF_getBakeTemp( uint32_t idx ) {
-  if( BAKES_COUNT <= idx ) {
+  if( NULL == bakeList || bakesCount <= idx ) {
     return 0;
   }
   return bakeList[ idx ].temp;
 }
 
 uint32_t CONF_getBakeTime( uint32_t idx ) {
-  if( BAKES_COUNT <= idx ) {
+  if( NULL == bakeList || bakesCount <= idx ) {
     return 0;
   }
   return bakeList[ idx ].time;
 }
 
 char * CONF_getBakeName( uint32_t idx ) {
-  if( BAKES_COUNT <= idx ) {
+  if( NULL == bakeList || bakesCount <= idx ) {
     return 0;
   }
   return bakeList[ idx ].name;

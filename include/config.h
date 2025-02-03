@@ -4,8 +4,9 @@
 #include "SPI.h"
 #include "WString.h"
 
-#define BAKES_COUNT       5
+// #define BAKES_COUNT       20
 #define BAKE_NAME_LENGTH  64
+#define BAKE_FILE_NAME    "/bakes2.txt"
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
 
