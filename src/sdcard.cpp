@@ -202,22 +202,36 @@ void SDCARD_writeFile( const char * path, const char * msg ) {
   writeFile( SD, path, msg );
 }
 
-uint32_t SDCARD_readFileContent( const char * path, uint8_t * buf, size_t len ) {
+uint32_t SDCARD_getFileContent( const char * path, uint8_t ** buf ) {
   uint32_t retVal = 0;
 
-  if( NULL == buf ) {
+  if( NULL == path ) {
     return retVal;
   }
 
   File file = SD.open( path, FILE_READ );
-  if( file ) {
-    int rlen = file.available();
 
-    if( len >= rlen && 0 < rlen ) {
-      retVal = (uint32_t)( file.read( buf, len ) );
+  if( file ) {
+    uint32_t bufLen = (uint32_t)file.size() + 1;  // +1 for safety (we can end buffer content with NULL character)
+
+    if( 1 < bufLen ) {
+      *buf = (uint8_t *)malloc( bufLen );
     }
-    else {
-      Serial.println( "SDCARD(readFileContent): Buffer size to small" );
+    // Serial.printf( "Allocated buffer size: %d\n", bufLen );
+    // Serial.printf( "file content: %s\n", *buf );
+
+    if( NULL != *buf ) {
+      int rlen = file.available();
+      // Serial.printf( "file available: %d\n", rlen );
+
+      if( 0 < rlen && rlen < bufLen ) {
+        retVal = (uint32_t)( file.read( *buf, bufLen ) );
+      }
+      else {
+        Serial.println( "SDCARD(readFileContent): Buffer size to small" );
+        free( *buf );
+        *buf = NULL;
+      }
     }
     file.close();
   }

@@ -32,13 +32,12 @@ void SDCARD_writeFile( const char * path, int value );
 void SDCARD_writeFile( const char * path, const char * msg );
 
 /**
- * Read content file to buffer
+ * Read file content to dynamically allocated buffer and return pointer to that buffer with it's size
  * path     - path to a file
- * buf      - pointer to buffer
- * len      - buffer length
+ * buf      - pointer to pointer to buffer
  * 
- * return   - read bytes
+ * return   - read bytes from file
  */
-uint32_t SDCARD_readFileContent( const char * path, uint8_t * buf, size_t len );
+uint32_t SDCARD_getFileContent( const char * path, uint8_t ** buf );
 
 #endif  // _SDCARD_H_

@@ -24,11 +24,13 @@ static lv_obj_t * roller1;
 static lv_obj_t * roller2;
 static lv_obj_t * roller3;
 static lv_obj_t * roller4;
+static lv_obj_t * bakeList;
 static updateTimeCb timeChangedCB = NULL;
 static updateTempCb tempChangedCB = NULL;
 static operationCb heatingStartCB = NULL;
 static operationCb heatingStopCB = NULL;
 static operationCb heatingPauseCB = NULL;
+static bakePickupCb bakePickupCB = NULL;
 static buttonsGroup_t buttonsGroup;
 static uint16_t rollerTemp;
 static uint32_t rollerTime;
@@ -48,10 +50,11 @@ static void btnCancelEventCb( lv_event_t * event );
 static void btnStartEventCb( lv_event_t * event );
 static void btnStopEventCb( lv_event_t * event );
 static void btnPauseEventCb( lv_event_t * event );
+static void btnBakeSelectEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
 static void setContentHome();
-static void setContentList();
+static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCount );
 static void setContentOptions();
 static void setScreenMain();
 static void blinkTimeCurrent( lv_timer_t * timer );
@@ -205,6 +208,19 @@ static void btnPauseEventCb( lv_event_t * event ) {
 
   if( NULL != heatingPauseCB ) {
     heatingPauseCB();
+  }
+}
+
+static void btnBakeSelectEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "BAKE_PICKUP_EVENT\n" );
+
+  if( NULL != bakePickupCB ) {
+    bakePickupCB( (int32_t)lv_event_get_user_data( event ) );
   }
 }
 
@@ -392,7 +408,7 @@ static void setContentHome() {
 
   lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, 0 ); // red
   lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, 0 );
-  lv_obj_set_style_pad_all( tabHome, 5, 0 );
+  lv_obj_set_style_pad_all( tabHome, 5, LV_PART_MAIN );
 
   /*Add content to the tabs*/
   lv_obj_t * labelTime = lv_label_create( tabHome );
@@ -468,21 +484,32 @@ static void setContentHome() {
   createOperatingButtons();
 }
 
-static void setContentList() {
+static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
   static lv_style_t styleTabList;
 
-  lv_obj_set_style_bg_color( tabList, {0x00, 0xff, 0x00}, 0 ); // green
+  lv_obj_set_style_bg_color( tabList, {0x00, 0x00, 0x00}, 0 ); // green
   lv_obj_set_style_bg_opa( tabList, LV_OPA_COVER, 0 );
-
-  /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tabList );
-  lv_label_set_text( label, "Second tab (0F0 green)" );
+  lv_obj_set_style_pad_all( tabList, 0, LV_PART_MAIN );
 
   // font size & etc
   lv_style_init( &styleTabList );
   lv_style_set_text_decor( &styleTabList, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabList, &lv_font_montserrat_32 );
+  lv_style_set_text_font( &styleTabList, &lv_font_montserrat_24 );
   lv_obj_add_style( tabList, &styleTabList, 0 );
+
+  /*Create a list*/
+  bakeList = lv_list_create( tabList );
+  lv_obj_set_size( bakeList, lv_obj_get_style_width( tabList, LV_PART_MAIN ), lv_obj_get_style_height( tabList, LV_PART_MAIN ) );
+  lv_obj_center( bakeList );
+
+  if( NULL != nameList ) {
+    for( int x=0; x<nameCount; x++) {
+      lv_obj_t * btn;
+      /*Add buttons to the list*/
+      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, (nameList + nameLength * x) );
+      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_CLICKED, (void *)x );  // a trick so we can pass a value to event callback function
+    }
+  }
 }
 
 static void setContentOptions() {
@@ -528,7 +555,7 @@ static void setScreenMain() {
   lv_obj_add_event_cb( tabView, tabEventCb, LV_EVENT_VALUE_CHANGED, NULL );
 
   setContentHome();
-  setContentList();
+  setContentList( NULL, 0, 0 );
   setContentOptions();
 }
 
@@ -733,6 +760,12 @@ void GUI_setPauseCallback( operationCb func ) {
   }
 }
 
+void GUI_setBakePickupCallback( bakePickupCb func ) {
+  if( NULL != func ) {
+    bakePickupCB = func;
+  }
+}
+
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
   if( BUTTONS_MAX_COUNT > btnGroup ) {
     buttonsGroup = btnGroup;
@@ -775,4 +808,8 @@ void GUI_setBlinkTimeCurrent( bool active ) {
 
 SPIClass * GUI_getSPIinstance() {
   return &(tft.getSPIinstance());
+}
+
+void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
+  setContentList( nameList, nameLength, nameCount );
 }

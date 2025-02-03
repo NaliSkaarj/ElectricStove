@@ -9,11 +9,12 @@
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
 unsigned long currentTime, next10S, next1S, next10mS, next100mS;
-static uint32_t targetHeatingTime;
+static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
 static xTimerHandle xTimer;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
+static uint32_t bakeIdx;
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
@@ -43,6 +44,17 @@ static void heatingStop() {
 
 static void heatingPause() {
   heaterStateRequested = STATE_PAUSE_REQUESTED;
+}
+
+static void bakePickup( uint32_t idx ) {
+  bakeIdx = idx;
+
+  targetHeatingTemp = CONF_getBakeTemp( bakeIdx );
+  targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx ) );
+  heaterStateRequested = STATE_START_REQUESTED;
+
+  Serial.printf( "Bake pickup[%d]:\"%s\"; Time:%d[ms], Temp:%d[*C]\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), targetHeatingTime, targetHeatingTemp );
+  GUI_SetTabActive( TAB_MAIN );
 }
 
 static void myTimerCallback( xTimerHandle pxTimer ) 
@@ -79,8 +91,10 @@ void setup() {
   GUI_setStartCallback( heatingStart );   // START heating was clicked
   GUI_setStopCallback( heatingStop );     // STOP heating was clicked
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
+  GUI_setBakePickupCallback( bakePickup );
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
+  GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
 
   // test timer feature
   xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
@@ -132,12 +146,12 @@ void loop() {
   if( currentTime >= next10S ) {
     next10S += 10000;
     BUZZ_Add( 100 );
-    Serial.println( ((String)CONF_getOption( BUZZER_MENU )).c_str() );
-    Serial.println( ((String)CONF_getOption( BUZZER_HEATING )).c_str() );
-    Serial.println( ((String)CONF_getOption( OTA_ACTIVE )).c_str() );
-    for( int x=0; x<bakeCount; x++) {
-      Serial.printf( "bakeNames[%d]: %s\n", x, bakeNames+x );
-    }
+    // Serial.println( ((String)CONF_getOption( BUZZER_MENU )).c_str() );
+    // Serial.println( ((String)CONF_getOption( BUZZER_HEATING )).c_str() );
+    // Serial.println( ((String)CONF_getOption( OTA_ACTIVE )).c_str() );
+    // for( int x=0; x<bakeCount; x++) {
+    //   Serial.printf( "bakeNames[%d]: %s\n", x, bakeNames+x );
+    // }
   }
 
   switch( heaterState ) {

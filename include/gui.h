@@ -18,6 +18,7 @@ typedef enum operationButton {
 typedef void (* updateTimeCb)( uint32_t );
 typedef void (* updateTempCb)( uint16_t );
 typedef void (* operationCb)( void );
+typedef void (* bakePickupCb)( uint32_t );
 
 /**
  * Need to be called from main Setup/Init function to run the service
@@ -91,6 +92,12 @@ void GUI_setStopCallback( operationCb func );
 void GUI_setPauseCallback( operationCb func );
 
 /**
+ * Set a callback function that will be called when user click on bake list
+ * operationCb      -   callback function
+ */
+void GUI_setBakePickupCallback( bakePickupCb func );
+
+/**
  * Set which group of buttons should be shown on the screen
  * btnGroup         -   BUTTON_START or BUTTON_PAUSE_STOP
  */
@@ -112,5 +119,13 @@ void GUI_setBlinkTimeCurrent( bool active );
  * Get SPI instance used by TFT driver
  */
 SPIClass * GUI_getSPIinstance( void );
+
+/**
+ * Show bake names as list on the screen
+ * nameList         - pointer to memory where all names are (treat as elements of type char* with nameLength length)
+ * nameLength       - max name length (every element on the list can be such long)
+ * nameCount        - number of position on the list
+ */
+void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount );
 
 #endif  // _GUI_H

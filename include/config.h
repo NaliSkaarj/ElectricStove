@@ -9,6 +9,13 @@
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
 
+enum tabs {
+  TAB_MAIN = 0,
+  TAB_LIST,
+  TAB_OPTIONS,
+  TAB_COUNT
+};
+
 enum options {
   BUZZER_MENU = 0,
   BUZZER_HEATING,
@@ -51,5 +58,29 @@ void CONF_setOption( enum options option, int val );
  * cnt      - number of elements in allocated memory
  */
 void CONF_getBakeNames( bakeName **bList, uint32_t *cnt );
+
+/**
+ * Get temperature for specified bake
+ * idx      - index for particular bake on the list (count from 0)
+ * 
+ * return   - temperature
+ */
+uint32_t CONF_getBakeTemp( uint32_t idx );
+
+/**
+ * Get time for specified bake
+ * idx      - index for particular bake on the list (count from 0)
+ * 
+ * return   - time (in seconds)
+ */
+uint32_t CONF_getBakeTime( uint32_t idx );
+
+/**
+ * Get specified bake's name
+ * idx      - index for particular bake on the list (count from 0)
+ * 
+ * return   - pointer to name (NULL terminated)
+ */
+char * CONF_getBakeName( uint32_t idx );
 
 #endif  // _CONFIG_H_

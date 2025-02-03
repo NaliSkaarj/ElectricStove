@@ -66,26 +66,31 @@ static void setBakesDefault() {
 }
 
 static void loadBakesFromFile() {
-  char buffer[ 256 ];// FIXME: make this buffer with size of fileSize and allocate enough mem for bakeList[]
+  uint8_t * buffer = NULL;
   uint32_t rlen;
+  int cnt = 0;
 
-  rlen = SDCARD_readFileContent( "/bakes.txt", (uint8_t *)&buffer[0], sizeof( buffer )-1 );
-  buffer[ rlen ] = '\0';
-  // Serial.printf( "bufor: %s\n", buffer );
-  deserializeJson( doc, buffer );
+  rlen = SDCARD_getFileContent( "/bakes.txt", &buffer );
+  if( NULL != buffer ) {
+    buffer[ rlen ] = '\0';
+    // Serial.printf( "buffer[%d]: %s\n", rlen, buffer );
 
-  int cnt = doc["count"];
+    deserializeJson( doc, buffer );
+    cnt = doc["count"];
 
-  for( int i = 0; i < cnt; i++ ) {
-    strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof(bakeList[i].name) );
-    bakeList[i].temp = doc["data"][i]["temp"];
-    bakeList[i].time = doc["data"][i]["time"];
+    for( int i = 0; i < cnt; i++ ) {
+      strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof( bakeList[i].name ) );
+      bakeList[i].temp = doc["data"][i]["temp"];
+      bakeList[i].time = doc["data"][i]["time"];
+    }
+
+    free( buffer );
   }
 
-  // Serial.println( "bakeList:" );
-  // for( int i = 0; i < cnt; i++ ) {
-  //   Serial.printf( "[%d]Name:%s;Temp:%d;Time:%d\n", i, bakeList[i].name, bakeList[i].temp, bakeList[i].time );
-  // }
+  Serial.println( "bakeList:" );
+  for( int i = 0; i < cnt; i++ ) {
+    Serial.printf( "[%d]Name:%s;Temp:%d;Time:%d\n", i, bakeList[i].name, bakeList[i].temp, bakeList[i].time );
+  }
 }
 
 void CONF_Init( SPIClass * spi ) {
@@ -136,4 +141,25 @@ void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {
   for( int x=0; x<BAKES_COUNT; x++) {
     snprintf( (char *)(*bList+x), sizeof(bakeName), "%s", bakeList[x].name );
   }
+}
+
+uint32_t CONF_getBakeTemp( uint32_t idx ) {
+  if( BAKES_COUNT <= idx ) {
+    return 0;
+  }
+  return bakeList[ idx ].temp;
+}
+
+uint32_t CONF_getBakeTime( uint32_t idx ) {
+  if( BAKES_COUNT <= idx ) {
+    return 0;
+  }
+  return bakeList[ idx ].time;
+}
+
+char * CONF_getBakeName( uint32_t idx ) {
+  if( BAKES_COUNT <= idx ) {
+    return 0;
+  }
+  return bakeList[ idx ].name;
 }
