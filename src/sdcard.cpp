@@ -125,8 +125,8 @@ void SDCARD_Setup( SPIClass * spi ) {
   }
   else {
     Serial.println("File already exists");  
+    file.close();
   }
-  file.close();
 }
 
 void SDCARD_log() {
@@ -150,6 +150,7 @@ void SDCARD_list() {
     unsigned long start = micros();
     printDirectory( root, 0 );
     Serial.printf( "listing time: %llu[uS]\n", micros() - start );
+    root.close();
   }
 }
 
@@ -204,6 +205,11 @@ void SDCARD_writeFile( const char * path, const char * msg ) {
 
 uint32_t SDCARD_getFileContent( const char * path, uint8_t ** buf ) {
   uint32_t retVal = 0;
+
+  if( false == cardAvailable ) {
+    Serial.println( "SDCARD(getFileContent): No SDCard" );
+    return 0;
+  }
 
   if( NULL == path ) {
     return retVal;
