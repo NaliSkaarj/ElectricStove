@@ -502,12 +502,15 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   lv_obj_set_size( bakeList, lv_obj_get_style_width( tabList, LV_PART_MAIN ), lv_obj_get_style_height( tabList, LV_PART_MAIN ) );
   lv_obj_center( bakeList );
 
-  if( NULL != nameList ) {
-    for( int x=0; x<nameCount; x++) {
+  if( NULL != nameList && 1000 > nameCount ) {  // max 999 positions on the list allowed
+    for( int x=0; x<nameCount; x++ ) {
       lv_obj_t * btn;
+      char buffer[ nameLength+5 ];  // additional 5 bytes for 3 digits number and 2 static chars ": "
+
       /*Add buttons to the list*/
-      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, (nameList + nameLength * x) );
-      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_CLICKED, (void *)x );  // a trick so we can pass a value to event callback function
+      snprintf( buffer, nameLength, "%d: %s", (x+1), (nameList + nameLength * x) );
+      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, buffer );
+      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_CLICKED, (void *)x );  // use pointer as ordinary value
     }
   }
 }
