@@ -251,20 +251,20 @@ static void rollerCreate( roller_t rType ) {
 
   roller1 = lv_roller_create( containerRoller );
   lv_roller_set_visible_row_count( roller1, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller1, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller1, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
   lv_obj_set_width( roller1, ROLLER_WIDTH );
   lv_obj_add_style( roller1, &style_sel, LV_PART_SELECTED );
 
   roller2 = lv_roller_create( containerRoller );
   lv_roller_set_options( roller2, opts9, LV_ROLLER_MODE_NORMAL );
   lv_roller_set_visible_row_count( roller2, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller2, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller2, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
   lv_obj_set_width( roller2, ROLLER_WIDTH );
   lv_obj_add_style( roller2, &style_sel, LV_PART_SELECTED );
 
   roller3 = lv_roller_create( containerRoller );
   lv_roller_set_visible_row_count( roller3, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller3, &lv_font_montserrat_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller3, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
   lv_obj_set_width( roller3, ROLLER_WIDTH );
   lv_obj_add_style( roller3, &style_sel, LV_PART_SELECTED );
 
@@ -296,7 +296,7 @@ static void rollerCreate( roller_t rType ) {
     roller4 = lv_roller_create( containerRoller );
     lv_roller_set_options( roller4, opts9, LV_ROLLER_MODE_NORMAL );
     lv_roller_set_visible_row_count( roller4, ROLLER_ROW_COUNT );
-    lv_obj_set_style_text_font( roller4, &lv_font_montserrat_24, LV_PART_MAIN );
+    lv_obj_set_style_text_font( roller4, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
     lv_obj_set_width( roller4, ROLLER_WIDTH );
     lv_obj_add_style( roller4, &style_sel, LV_PART_SELECTED );
     lv_obj_align( roller4, LV_ALIGN_LEFT_MID, 260, -35 );
@@ -494,7 +494,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   // font size & etc
   lv_style_init( &styleTabList );
   lv_style_set_text_decor( &styleTabList, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabList, &lv_font_montserrat_24 );
+  lv_style_set_text_font( &styleTabList, &lv_font_ubuntu_regular_24 );
   lv_obj_add_style( tabList, &styleTabList, 0 );
 
   /*Create a list*/
@@ -509,7 +509,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
 
       /*Add buttons to the list*/
       snprintf( buffer, nameLength, "%d: %s", (x+1), (nameList + nameLength * x) );
-      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, buffer );
+      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT_ARROW, buffer );  // special character available on lv_font_ubuntu_regular_24 only
       lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_CLICKED, (void *)x );  // use pointer as ordinary value
     }
   }
@@ -528,7 +528,7 @@ static void setContentOptions() {
   // font size & etc
   lv_style_init( &styleTabOptions );
   lv_style_set_text_decor( &styleTabOptions, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabOptions, &lv_font_montserrat_24 );
+  lv_style_set_text_font( &styleTabOptions, &lv_font_ubuntu_regular_24 );
   lv_obj_add_style( tabOptions, &styleTabOptions, 0 );
 }
 
