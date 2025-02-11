@@ -707,7 +707,7 @@ void GUI_SetTabActive( uint32_t tabNr )
 }
 
 void GUI_SetTargetTemp( uint16_t temp ) {
-  char buff[4];
+  char buff[6];
   uint16_t t = temp;
   uint16_t t1, t2, t3;
 
@@ -719,10 +719,12 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   t -= ( t2 * 10 );
   t3 = t;
 
-  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
-  buff[2] = '0' + t3;
-  buff[3] = '\0';
+  buff[0] = '[';
+  buff[1] = ( 0 < t1 ? '0' + t1 : ' ' );
+  buff[2] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
+  buff[3] = '0' + t3;
+  buff[4] = ']';
+  buff[5] = '\0';
 
   lv_label_set_text( labelTargetTempVal, buff );
   // lv_label_set_text( labelTargetTempVal, "[---]" );  // used for adjusting label position
