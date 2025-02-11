@@ -11,6 +11,10 @@ static lv_style_t styleTabs;  // has impact on tabs icons size
 static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
 static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
 static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
+static lv_obj_t * heatingIndicator1;
+static lv_obj_t * heatingIndicator2;
+static lv_obj_t * heatingIndicator3;
+static lv_obj_t * heatingIndicator4;
 static bool       touchEvent = false;
 static lv_obj_t * labelTargetTempVal;
 static lv_obj_t * labelTargetTimeVal;
@@ -406,8 +410,8 @@ static void setContentHome() {
   static lv_style_t styleTabHome;
   static lv_style_t styleTime, styleBtn;
 
-  lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, 0 ); // red
-  lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, 0 );
+  lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, LV_PART_MAIN ); // red
+  lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, LV_PART_MAIN );
   lv_obj_set_style_pad_all( tabHome, 5, LV_PART_MAIN );
 
   /*Add content to the tabs*/
@@ -560,6 +564,48 @@ static void setScreenMain() {
   setContentHome();
   setContentList( NULL, 0, 0 );
   setContentOptions();
+
+  // create frame around the whole screen
+  // top bar
+  heatingIndicator1 = lv_button_create( lv_scr_act() );
+  lv_obj_set_size( heatingIndicator1, LV_HOR_RES, 15 );
+  lv_obj_align( heatingIndicator1, LV_ALIGN_TOP_MID, 0, 0 );
+  lv_obj_set_style_radius( heatingIndicator1, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( heatingIndicator1, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( heatingIndicator1, {0xff, 0x00, 0x00}, LV_PART_MAIN );  //red
+  lv_obj_set_style_shadow_width( heatingIndicator1, 0, LV_PART_MAIN );
+  lv_obj_clear_flag( heatingIndicator1, LV_OBJ_FLAG_CLICKABLE );
+  // right bar
+  heatingIndicator2 = lv_button_create( lv_scr_act() );
+  lv_obj_set_size( heatingIndicator2, 15, LV_VER_RES );
+  lv_obj_align( heatingIndicator2, LV_ALIGN_RIGHT_MID, 0, 0 );
+  lv_obj_set_style_radius( heatingIndicator2, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( heatingIndicator2, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( heatingIndicator2, {0xff, 0x00, 0x00}, LV_PART_MAIN );  //red
+  lv_obj_set_style_shadow_width( heatingIndicator2, 0, LV_PART_MAIN );
+  lv_obj_clear_flag( heatingIndicator2, LV_OBJ_FLAG_CLICKABLE );
+  // bottom bar
+  heatingIndicator3 = lv_button_create( lv_scr_act() );
+  lv_obj_set_size( heatingIndicator3, LV_HOR_RES, 15 );
+  lv_obj_align( heatingIndicator3, LV_ALIGN_BOTTOM_MID, 0, 0 );
+  lv_obj_set_style_radius( heatingIndicator3, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( heatingIndicator3, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( heatingIndicator3, {0xff, 0x00, 0x00}, LV_PART_MAIN );  //red
+  lv_obj_set_style_shadow_width( heatingIndicator3, 0, LV_PART_MAIN );
+  lv_obj_clear_flag( heatingIndicator3, LV_OBJ_FLAG_CLICKABLE );
+  // left bar
+  heatingIndicator4 = lv_button_create( lv_scr_act() );
+  lv_obj_set_size( heatingIndicator4, 15, LV_VER_RES );
+  lv_obj_align( heatingIndicator4, LV_ALIGN_LEFT_MID, 0, 0 );
+  lv_obj_set_style_radius( heatingIndicator4, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( heatingIndicator4, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( heatingIndicator4, {0xff, 0x00, 0x00}, LV_PART_MAIN );  //red
+  lv_obj_set_style_shadow_width( heatingIndicator4, 0, LV_PART_MAIN );
+  lv_obj_clear_flag( heatingIndicator4, LV_OBJ_FLAG_CLICKABLE );
 }
 
 static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
@@ -571,10 +617,26 @@ static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
     Serial.println("BLINK_TOGGLE");
     if( isVisible ){
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0xD3,0xD3,0xD3}, 0 );
+      lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
       isVisible = false;
     }
     else {
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
+      lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
+      lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
+      lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
+      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
       isVisible = true;
     }
   }
@@ -804,6 +866,10 @@ void GUI_setBlinkTimeCurrent( bool active ) {
       lv_timer_pause( timer_blinkTimeCurrent );
       // set proper label color here, just in case it's changed when stopping blinking
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
       Serial.println("BLINK_STOP");
     }
   }
