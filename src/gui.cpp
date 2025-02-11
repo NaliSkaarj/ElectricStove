@@ -39,6 +39,7 @@ static buttonsGroup_t buttonsGroup;
 static uint16_t rollerTemp;
 static uint32_t rollerTime;
 static lv_timer_t * timer_blinkTimeCurrent;
+static lv_timer_t * timer_blinkScreenFrame;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -62,6 +63,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
 static void setContentOptions();
 static void setScreenMain();
 static void blinkTimeCurrent( lv_timer_t * timer );
+static void blinkScreenFrame( lv_timer_t * timer );
 
 /* Display flushing */
 static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uint8_t * color_p )
@@ -614,29 +616,45 @@ static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
   ( void )isVisible;  // suppress CppCheck warning (variableScope)
 
   if( NULL != labelCurrentTimeVal ) {
-    Serial.println("BLINK_TOGGLE");
+    Serial.println("BLINK_TIME_TOGGLE");
     if( isVisible ){
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0xD3,0xD3,0xD3}, 0 );
-      lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
-      lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
-      lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
-      lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
-      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
       isVisible = false;
     }
     else {
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      isVisible = true;
+    }
+  }
+}
+
+static void blinkScreenFrame( lv_timer_t * timer ) {
+  static bool isVisible = true;
+
+  ( void )isVisible;  // suppress CppCheck warning (variableScope)
+
+  if( NULL != heatingIndicator1
+  &&  NULL != heatingIndicator2
+  &&  NULL != heatingIndicator3
+  &&  NULL != heatingIndicator4 ) {
+    Serial.println("BLINK_FRAME_TOGGLE");
+    lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
+
+    if( isVisible ){
+      lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0x00, 0xff}, LV_PART_MAIN );  //orange
+      isVisible = false;
+    }
+    else {
       lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
       lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
       lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
       lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
-      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
       isVisible = true;
     }
   }
@@ -669,6 +687,8 @@ void GUI_Init() {
 
   timer_blinkTimeCurrent = lv_timer_create( blinkTimeCurrent, 250,  NULL );
   lv_timer_pause( timer_blinkTimeCurrent );
+  timer_blinkScreenFrame = lv_timer_create( blinkScreenFrame, 500,  NULL );
+  lv_timer_pause( timer_blinkScreenFrame );
 }
 
 void GUI_Handle( uint32_t tick_period ) {
@@ -860,17 +880,38 @@ void GUI_setBlinkTimeCurrent( bool active ) {
   if( NULL != labelCurrentTimeVal ) {
     if( active ) {
       lv_timer_resume( timer_blinkTimeCurrent );
-      Serial.println("BLINK_START");
+      Serial.println("BLINK_TIME_START");
     }
     else {
       lv_timer_pause( timer_blinkTimeCurrent );
       // set proper label color here, just in case it's changed when stopping blinking
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+      Serial.println("BLINK_TIME_STOP");
+    }
+  }
+}
+
+void GUI_setBlinkScreenFrame( bool active ) {
+  if( NULL == timer_blinkScreenFrame ) {
+    return;
+  }
+
+  if( NULL != heatingIndicator1
+  &&  NULL != heatingIndicator2
+  &&  NULL != heatingIndicator3
+  &&  NULL != heatingIndicator4 ) {
+
+    if( active ) {
+      lv_timer_resume( timer_blinkScreenFrame );
+      Serial.println("BLINK_FRAME_START");
+    }
+    else {
+      lv_timer_pause( timer_blinkScreenFrame );
       lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
       lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
       lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
       lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
-      Serial.println("BLINK_STOP");
+      Serial.println("BLINK_FRAME_STOP");
     }
   }
 }

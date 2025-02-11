@@ -178,6 +178,7 @@ void loop() {
         // hide "Start" button, show "Pause" and "Stop" buttons
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
         GUI_setTimeTempChangeAllowed( false );
+        GUI_setBlinkScreenFrame( true );
         GUI_setBlinkTimeCurrent( false );    // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
@@ -190,6 +191,7 @@ void loop() {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
         GUI_setTimeTempChangeAllowed( true );
+        GUI_setBlinkScreenFrame( false );
         GUI_setBlinkTimeCurrent( false );   // no required here but just in case
 
         heaterStateRequested = STATE_IDLE;
@@ -199,6 +201,7 @@ void loop() {
         HEATER_pause();
         GUI_setOperationButtons( BUTTONS_CONTINUE_STOP );
         GUI_setTimeTempChangeAllowed( false );
+        GUI_setBlinkScreenFrame( false );
         GUI_setBlinkTimeCurrent( true );   // blinking 'TimeCurrent' indicate PAUSE active
 
         heaterStateRequested = STATE_IDLE;
@@ -211,6 +214,7 @@ void loop() {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
         GUI_setTimeTempChangeAllowed( true );
+        GUI_setBlinkScreenFrame( false );
         GUI_setBlinkTimeCurrent( false );    // stop blinking (stop heating)
 
         heaterStateRequested = STATE_IDLE;
@@ -220,6 +224,7 @@ void loop() {
         HEATER_pause(); // continue processing (same API function for 'unpause')
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
         GUI_setTimeTempChangeAllowed( false );
+        GUI_setBlinkScreenFrame( true );
         GUI_setBlinkTimeCurrent( false );    // stop blinking (continue heating)
 
         heaterStateRequested = STATE_IDLE;

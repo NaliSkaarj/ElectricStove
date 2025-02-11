@@ -116,6 +116,12 @@ void GUI_setTimeTempChangeAllowed( bool active );
 void GUI_setBlinkTimeCurrent( bool active );
 
 /**
+ * Activate/deactivate blinking frame around the whole screen
+ * active           -   whether to activate blinking
+ */
+void GUI_setBlinkScreenFrame( bool active );
+
+/**
  * Get SPI instance used by TFT driver
  */
 SPIClass * GUI_getSPIinstance( void );
