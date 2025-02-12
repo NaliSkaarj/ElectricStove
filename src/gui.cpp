@@ -40,6 +40,7 @@ static uint16_t rollerTemp;
 static uint32_t rollerTime;
 static lv_timer_t * timer_blinkTimeCurrent;
 static lv_timer_t * timer_blinkScreenFrame;
+static lv_timer_t * timer_setDefaultTab;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -64,6 +65,7 @@ static void setContentOptions();
 static void setScreenMain();
 static void blinkTimeCurrent( lv_timer_t * timer );
 static void blinkScreenFrame( lv_timer_t * timer );
+static void setDefaultTab( lv_timer_t * timer );
 
 /* Display flushing */
 static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uint8_t * color_p )
@@ -108,6 +110,7 @@ static void tabEventCb( lv_event_t * event ) {
 
 static void touchEventCb( lv_event_t * event ) {
   touchEvent = true;
+  lv_timer_reset( timer_setDefaultTab );
   OTA_LogWrite( "TOUCH_EVENT\n" );
 }
 
@@ -642,10 +645,10 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
   &&  NULL != heatingIndicator4 ) {
     Serial.println("BLINK_FRAME_TOGGLE");
     if( isVisible ){
-    lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
-    lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
-    lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
-    lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
       isVisible = false;
     }
     else {
@@ -656,6 +659,10 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
       isVisible = true;
     }
   }
+}
+
+static void setDefaultTab( lv_timer_t * timer ) {
+  GUI_SetTabActive( 0 );
 }
 
 void GUI_Init() {
@@ -687,6 +694,8 @@ void GUI_Init() {
   lv_timer_pause( timer_blinkTimeCurrent );
   timer_blinkScreenFrame = lv_timer_create( blinkScreenFrame, 500,  NULL );
   lv_timer_pause( timer_blinkScreenFrame );
+  timer_setDefaultTab = lv_timer_create( setDefaultTab, 10000,  NULL );
+  lv_timer_enable( timer_setDefaultTab );
 }
 
 void GUI_Handle( uint32_t tick_period ) {
