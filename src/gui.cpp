@@ -493,7 +493,7 @@ static void setContentHome() {
 static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
   static lv_style_t styleTabList;
 
-  lv_obj_set_style_bg_color( tabList, {0x00, 0x00, 0x00}, 0 ); // green
+  lv_obj_set_style_bg_color( tabList, {0x00, 0x00, 0x00}, 0 );
   lv_obj_set_style_bg_opa( tabList, LV_OPA_COVER, 0 );
   lv_obj_set_style_pad_all( tabList, 0, LV_PART_MAIN );
 
@@ -507,6 +507,9 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   bakeList = lv_list_create( tabList );
   lv_obj_set_size( bakeList, lv_obj_get_style_width( tabList, LV_PART_MAIN ), lv_obj_get_style_height( tabList, LV_PART_MAIN ) );
   lv_obj_center( bakeList );
+  lv_obj_set_style_radius( bakeList, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_ELASTIC );
+  lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_MOMENTUM );
 
   if( NULL != nameList && 1000 > nameCount ) {  // max 999 positions on the list allowed
     for( int x=0; x<nameCount; x++ ) {
