@@ -47,13 +47,17 @@ static void heatingPause() {
 }
 
 static void bakePickup( uint32_t idx ) {
-  bakeIdx = idx;
+  if( STATE_IDLE == heaterState ) {
+    bakeIdx = idx;
 
-  targetHeatingTemp = CONF_getBakeTemp( bakeIdx );
-  targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx ) );
-  heaterStateRequested = STATE_START_REQUESTED;
+    targetHeatingTemp = CONF_getBakeTemp( bakeIdx );
+    targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx ) );
+    heaterStateRequested = STATE_START_REQUESTED;
 
-  Serial.printf( "Bake pickup[%d]:\"%s\"; Time:%d[ms], Temp:%d[*C]\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), targetHeatingTime, targetHeatingTemp );
+    Serial.printf( "Bake pickup[%d]:\"%s\"; Time:%d[ms], Temp:%d[*C]\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), targetHeatingTime, targetHeatingTemp );
+  } else {
+    BUZZ_Add( 0, 80, 100, 3 );
+  }
   GUI_SetTabActive( TAB_MAIN );
 }
 
