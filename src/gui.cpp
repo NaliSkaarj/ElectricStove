@@ -221,6 +221,8 @@ static void btnPauseEventCb( lv_event_t * event ) {
 }
 
 static void btnBakeSelectEventCb( lv_event_t * event ) {
+  lv_event_code_t code = lv_event_get_code( event );
+
   if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
     BUZZ_Add( 80 );
     touchEvent = false;
@@ -229,7 +231,7 @@ static void btnBakeSelectEventCb( lv_event_t * event ) {
   OTA_LogWrite( "BAKE_PICKUP_EVENT\n" );
 
   if( NULL != bakePickupCB ) {
-    bakePickupCB( (int32_t)lv_event_get_user_data( event ) );
+    bakePickupCB( (int32_t)lv_event_get_user_data( event ), ( LV_EVENT_LONG_PRESSED == code ) );
   }
 }
 
@@ -522,7 +524,8 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
       /*Add buttons to the list*/
       snprintf( buffer, nameLength, "%d: %s", (x+1), (nameList + nameLength * x) );
       btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT_ARROW, buffer );  // special character available on lv_font_ubuntu_regular_24 only
-      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_CLICKED, (void *)x );  // use pointer as ordinary value
+      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_SHORT_CLICKED, (void *)x );  // use pointer as ordinary value
+      lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_LONG_PRESSED, (void *)x );   // use pointer as ordinary value
     }
   }
 }
@@ -686,7 +689,7 @@ void GUI_Init() {
   lv_indev_set_read_cb( indev, customTouchpadRead );    // Set your driver function
   lv_indev_enable( indev, true );
 
-  lv_indev_add_event_cb( indev, touchEventCb, LV_EVENT_CLICKED, NULL );
+  lv_indev_add_event_cb( indev, touchEventCb, LV_EVENT_SHORT_CLICKED, NULL );
 
   setScreenMain();
 
@@ -710,7 +713,6 @@ void GUI_SetTabActive( uint32_t tabNr )
   }
 
   lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
-  Serial.println( "Timer callback function executed" );
 }
 
 void GUI_SetTargetTemp( uint16_t temp ) {

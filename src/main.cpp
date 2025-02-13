@@ -46,18 +46,24 @@ static void heatingPause() {
   heaterStateRequested = STATE_PAUSE_REQUESTED;
 }
 
-static void bakePickup( uint32_t idx ) {
+static void bakePickup( uint32_t idx, bool longPress ) {
   if( STATE_IDLE == heaterState ) {
     bakeIdx = idx;
 
     targetHeatingTemp = CONF_getBakeTemp( bakeIdx );
     targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx ) );
-    heaterStateRequested = STATE_START_REQUESTED;
+    GUI_SetTargetTemp( targetHeatingTemp );
+    GUI_SetTargetTime( targetHeatingTime );
+
+    if( longPress ) {
+      heaterStateRequested = STATE_START_REQUESTED;
+    }
 
     Serial.printf( "Bake pickup[%d]:\"%s\"; Time:%d[ms], Temp:%d[*C]\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), targetHeatingTime, targetHeatingTemp );
   } else {
     BUZZ_Add( 0, 80, 100, 3 );
   }
+
   GUI_SetTabActive( TAB_MAIN );
 }
 
@@ -178,6 +184,8 @@ void loop() {
         HEATER_setTime( targetHeatingTime );
         HEATER_setTemperature( (uint16_t)targetHeatingTemp );
         HEATER_start();
+
+        BUZZ_Add( 400 );
 
         // hide "Start" button, show "Pause" and "Stop" buttons
         GUI_setOperationButtons( BUTTONS_PAUSE_STOP );

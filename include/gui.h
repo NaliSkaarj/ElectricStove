@@ -18,7 +18,7 @@ typedef enum operationButton {
 typedef void (* updateTimeCb)( uint32_t );
 typedef void (* updateTempCb)( uint16_t );
 typedef void (* operationCb)( void );
-typedef void (* bakePickupCb)( uint32_t );
+typedef void (* bakePickupCb)( uint32_t, bool );
 
 /**
  * Need to be called from main Setup/Init function to run the service
