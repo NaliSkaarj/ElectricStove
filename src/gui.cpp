@@ -11,10 +11,7 @@ static lv_style_t styleTabs;  // has impact on tabs icons size
 static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
 static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
 static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
-static lv_obj_t * heatingIndicator1;
-static lv_obj_t * heatingIndicator2;
-static lv_obj_t * heatingIndicator3;
-static lv_obj_t * heatingIndicator4;
+static lv_style_t styleScreenFrame;
 static bool       touchEvent = false;
 static lv_obj_t * labelTargetTempVal;
 static lv_obj_t * labelTargetTimeVal;
@@ -577,45 +574,40 @@ static void setScreenMain() {
   setContentOptions();
 
   // create frame around the whole screen
+  static lv_obj_t * heatingIndicator1;
+  static lv_obj_t * heatingIndicator2;
+  static lv_obj_t * heatingIndicator3;
+  static lv_obj_t * heatingIndicator4;
+  // style properties
+  lv_style_init( &styleScreenFrame );
+  lv_style_set_radius( &styleScreenFrame, 0 );
+  lv_style_set_border_width( &styleScreenFrame, 0 );
+  lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_TRANSP );
+  lv_style_set_bg_color( &styleScreenFrame, {0x00, 0xff, 0x00} );  //green
+  lv_style_set_shadow_width( &styleScreenFrame, 0 );
   // top bar
   heatingIndicator1 = lv_button_create( lv_scr_act() );
   lv_obj_set_size( heatingIndicator1, LV_HOR_RES, 15 );
   lv_obj_align( heatingIndicator1, LV_ALIGN_TOP_MID, 0, 0 );
-  lv_obj_set_style_radius( heatingIndicator1, 0, LV_PART_MAIN );
-  lv_obj_set_style_border_width( heatingIndicator1, 0, LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
-  lv_obj_set_style_bg_color( heatingIndicator1, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
-  lv_obj_set_style_shadow_width( heatingIndicator1, 0, LV_PART_MAIN );
+  lv_obj_add_style( heatingIndicator1, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator1, LV_OBJ_FLAG_CLICKABLE );
   // right bar
   heatingIndicator2 = lv_button_create( lv_scr_act() );
   lv_obj_set_size( heatingIndicator2, 15, LV_VER_RES );
   lv_obj_align( heatingIndicator2, LV_ALIGN_RIGHT_MID, 0, 0 );
-  lv_obj_set_style_radius( heatingIndicator2, 0, LV_PART_MAIN );
-  lv_obj_set_style_border_width( heatingIndicator2, 0, LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
-  lv_obj_set_style_bg_color( heatingIndicator2, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
-  lv_obj_set_style_shadow_width( heatingIndicator2, 0, LV_PART_MAIN );
+  lv_obj_add_style( heatingIndicator2, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator2, LV_OBJ_FLAG_CLICKABLE );
   // bottom bar
   heatingIndicator3 = lv_button_create( lv_scr_act() );
   lv_obj_set_size( heatingIndicator3, LV_HOR_RES, 15 );
   lv_obj_align( heatingIndicator3, LV_ALIGN_BOTTOM_MID, 0, 0 );
-  lv_obj_set_style_radius( heatingIndicator3, 0, LV_PART_MAIN );
-  lv_obj_set_style_border_width( heatingIndicator3, 0, LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
-  lv_obj_set_style_bg_color( heatingIndicator3, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
-  lv_obj_set_style_shadow_width( heatingIndicator3, 0, LV_PART_MAIN );
+  lv_obj_add_style( heatingIndicator3, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator3, LV_OBJ_FLAG_CLICKABLE );
   // left bar
   heatingIndicator4 = lv_button_create( lv_scr_act() );
   lv_obj_set_size( heatingIndicator4, 15, LV_VER_RES );
   lv_obj_align( heatingIndicator4, LV_ALIGN_LEFT_MID, 0, 0 );
-  lv_obj_set_style_radius( heatingIndicator4, 0, LV_PART_MAIN );
-  lv_obj_set_style_border_width( heatingIndicator4, 0, LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
-  lv_obj_set_style_bg_color( heatingIndicator4, {0x00, 0xff, 0x00}, LV_PART_MAIN );  //green
-  lv_obj_set_style_shadow_width( heatingIndicator4, 0, LV_PART_MAIN );
+  lv_obj_add_style( heatingIndicator4, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator4, LV_OBJ_FLAG_CLICKABLE );
 }
 
@@ -642,26 +634,18 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
 
   ( void )isVisible;  // suppress CppCheck warning (variableScope)
 
-  if( NULL != heatingIndicator1
-  &&  NULL != heatingIndicator2
-  &&  NULL != heatingIndicator3
-  &&  NULL != heatingIndicator4 ) {
-    Serial.println("BLINK_FRAME_TOGGLE");
-    if( isVisible ){
-      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_COVER, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_COVER, LV_PART_MAIN );
-      isVisible = false;
-    }
-    else {
-      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
-      isVisible = true;
-    }
+  Serial.println("BLINK_FRAME_TOGGLE");
+
+  if( isVisible ){
+    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_COVER );
+    isVisible = false;
   }
+  else {
+    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_TRANSP );
+    isVisible = true;
+  }
+
+  lv_obj_report_style_change( &styleScreenFrame );
 }
 
 static void setDefaultTab( lv_timer_t * timer ) {
@@ -907,23 +891,15 @@ void GUI_setBlinkScreenFrame( bool active ) {
     return;
   }
 
-  if( NULL != heatingIndicator1
-  &&  NULL != heatingIndicator2
-  &&  NULL != heatingIndicator3
-  &&  NULL != heatingIndicator4 ) {
-
-    if( active ) {
-      lv_timer_resume( timer_blinkScreenFrame );
-      Serial.println("BLINK_FRAME_START");
-    }
-    else {
-      lv_timer_pause( timer_blinkScreenFrame );
-      lv_obj_set_style_bg_opa( heatingIndicator1, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator2, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator3, LV_OPA_TRANSP, LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( heatingIndicator4, LV_OPA_TRANSP, LV_PART_MAIN );
-      Serial.println("BLINK_FRAME_STOP");
-    }
+  if( active ) {
+    lv_timer_resume( timer_blinkScreenFrame );
+    Serial.println("BLINK_FRAME_START");
+  }
+  else {
+    lv_timer_pause( timer_blinkScreenFrame );
+    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_TRANSP );
+    lv_obj_report_style_change( &styleScreenFrame );
+    Serial.println("BLINK_FRAME_STOP");
   }
 }
 
