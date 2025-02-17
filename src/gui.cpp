@@ -11,6 +11,10 @@ static lv_style_t styleTabs;  // has impact on tabs icons size
 static lv_obj_t * tabHome;    // the widget where the content of the tab HOME can be created
 static lv_obj_t * tabList;    // the widget where the content of the tab LIST can be created
 static lv_obj_t * tabOptions; // the widget where the content of the tab OPTIONS can be created
+static lv_obj_t * widgetTime;
+static lv_obj_t * widgetTemp;
+static lv_obj_t * progressCircle;
+static lv_obj_t * tempBar;
 static lv_style_t styleScreenFrame;
 static bool       touchEvent = false;
 static lv_obj_t * labelTargetTempVal;
@@ -19,8 +23,6 @@ static lv_obj_t * labelCurrentTempVal;
 static lv_obj_t * labelCurrentTimeVal;
 static lv_obj_t * containerRoller;
 static lv_obj_t * containerButtons;
-static lv_obj_t * btnTime;
-static lv_obj_t * btnTemp;
 static lv_obj_t * roller1;
 static lv_obj_t * roller2;
 static lv_obj_t * roller3;
@@ -411,85 +413,110 @@ static void createOperatingButtons() {
 }
 
 static void setContentHome() {
-  static lv_style_t styleTabHome;
-  static lv_style_t styleTime, styleBtn;
-
-  lv_obj_set_style_bg_color( tabHome, {0xff, 0x00, 0x00}, LV_PART_MAIN ); // red
+  lv_obj_set_style_bg_color( tabHome, lv_palette_darken(LV_PALETTE_GREY, 2), LV_PART_MAIN ); // red
   lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, LV_PART_MAIN );
-  lv_obj_set_style_pad_all( tabHome, 5, LV_PART_MAIN );
+  lv_obj_set_style_pad_all( tabHome, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( tabHome, 0, 0 );
+  lv_obj_set_style_text_decor( tabHome, LV_TEXT_DECOR_NONE, 0 );
+  lv_obj_set_style_text_font( tabHome, &lv_font_montserrat_38, 0 );
 
-  /*Add content to the tabs*/
-  lv_obj_t * labelTime = lv_label_create( tabHome );
-  lv_obj_t * labelTemp = lv_label_create( tabHome );
-  btnTime = lv_button_create( tabHome );
-  btnTemp = lv_button_create( tabHome );
+  // clickable time's widget
+  widgetTime = lv_button_create( tabHome );
+  lv_obj_set_style_bg_color( widgetTime, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( widgetTime, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( widgetTime, 20, LV_PART_MAIN );
+  lv_obj_set_style_width( widgetTime, 150, LV_PART_MAIN );
+  lv_obj_set_style_height( widgetTime, 150, LV_PART_MAIN );
+  lv_obj_set_style_border_width( widgetTime, 2, LV_PART_MAIN );
+  lv_obj_set_style_border_color( widgetTime, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+  lv_obj_set_style_border_opa( widgetTime, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( widgetTime, 0, LV_PART_MAIN );
+  lv_obj_align( widgetTime, LV_ALIGN_TOP_LEFT, 15, 15 );
+  lv_obj_remove_flag( widgetTime, LV_OBJ_FLAG_PRESS_LOCK );
 
-  // lv_label_set_text( labelTime, "[00:00]\nTime[h:m]\n00:00" ); // used for adjusting label position
-  // lv_label_set_text( labelTemp, "[---]\nTemp[°C]\n123" );      // used for adjusting label position
-  lv_label_set_text( labelTime, "\nTime[h:m]\n" );
-  lv_label_set_text( labelTemp, "\nTemp[°C]\n" );
+  progressCircle = lv_arc_create( widgetTime );
+  lv_arc_set_rotation( progressCircle, 270 );
+  lv_arc_set_bg_angles( progressCircle, 0, 360 );
+  lv_obj_set_style_width( progressCircle, 140, LV_PART_MAIN );
+  lv_obj_set_style_height( progressCircle, 140, LV_PART_MAIN );
+  lv_obj_set_style_arc_color( progressCircle, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_arc_color( progressCircle, {0xff, 0xff, 0xff}, LV_PART_INDICATOR );
+  lv_obj_set_style_arc_opa( progressCircle, LV_OPA_70, LV_PART_INDICATOR );
+  lv_obj_align( progressCircle, LV_ALIGN_CENTER, 0, 0 );
+  lv_obj_remove_style( progressCircle, NULL, LV_PART_KNOB );
+  lv_obj_remove_flag( progressCircle, LV_OBJ_FLAG_CLICKABLE );
+  lv_arc_set_value( progressCircle, 10 );
 
-  lv_obj_align( labelTime, LV_ALIGN_TOP_LEFT, 5, 5 );
-  lv_obj_align( labelTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
-
-  labelTargetTimeVal = lv_label_create( tabHome );
-  labelCurrentTimeVal = lv_label_create( tabHome );
-  labelTargetTempVal = lv_label_create( tabHome );
-  labelCurrentTempVal = lv_label_create( tabHome );
-
-  lv_label_set_text( labelTargetTimeVal, "[00:00]" );
+  // current time
+  labelCurrentTimeVal = lv_label_create( widgetTime );
   lv_label_set_text( labelCurrentTimeVal, "00:00" );
-  lv_label_set_text( labelTargetTempVal, "[---]" );
+  lv_obj_set_style_text_color( labelCurrentTimeVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_align( labelCurrentTimeVal, LV_ALIGN_CENTER, 0, -10 );
+  // target time
+  labelTargetTimeVal = lv_label_create( widgetTime );
+  lv_label_set_text( labelTargetTimeVal, "[00:00]" );
+  lv_obj_set_style_text_color( labelTargetTimeVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelTargetTimeVal, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_align( labelTargetTimeVal, LV_ALIGN_CENTER, 0, 20 );
+
+  // clickable temp's widget
+  widgetTemp = lv_button_create( tabHome );
+  lv_obj_set_style_bg_color( widgetTemp, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( widgetTemp, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( widgetTemp, 20, LV_PART_MAIN );
+  lv_obj_set_style_width( widgetTemp, 150, LV_PART_MAIN );
+  lv_obj_set_style_height( widgetTemp, 150, LV_PART_MAIN );
+  lv_obj_set_style_border_width( widgetTemp, 2, LV_PART_MAIN );
+  lv_obj_set_style_border_color( widgetTemp, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+  lv_obj_set_style_border_opa( widgetTemp, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( widgetTemp, 0, LV_PART_MAIN );
+  lv_obj_align( widgetTemp, LV_ALIGN_TOP_LEFT, 180, 15 );
+  lv_obj_remove_flag( widgetTemp, LV_OBJ_FLAG_PRESS_LOCK );
+
+  // main part of thermometer (vertical bar)
+  tempBar = lv_bar_create( widgetTemp );
+  lv_obj_set_size( tempBar, 20, 120 );
+  lv_obj_align( tempBar, LV_ALIGN_CENTER, -50, 0 );
+  lv_bar_set_range( tempBar, -30, 115 );
+  lv_obj_set_style_bg_opa( tempBar, LV_OPA_COVER, LV_PART_INDICATOR );
+  lv_obj_set_style_bg_grad_color( tempBar, {0x00, 0x00, 0xff}, LV_PART_INDICATOR );   // gradient from blue
+  lv_obj_set_style_bg_color( tempBar, {0xff, 0x00, 0x00}, LV_PART_INDICATOR );        // to red
+  lv_obj_set_style_bg_grad_dir( tempBar, LV_GRAD_DIR_VER, LV_PART_INDICATOR );
+  lv_obj_remove_flag( tempBar, LV_OBJ_FLAG_CLICKABLE );
+  lv_bar_set_value( tempBar, 90, LV_ANIM_OFF );
+  // bottom part of thermometer (the bulb)
+  lv_obj_t * bulb  = lv_led_create( widgetTemp );
+  lv_obj_align( bulb, LV_ALIGN_CENTER, -50, 55 );
+  lv_led_set_color( bulb, {0x00, 0x00, 0xff} );
+  lv_led_set_brightness( bulb, 220 );
+  lv_obj_set_style_shadow_width( bulb, 0 ,0 );
+
+  // target temp
+  labelTargetTempVal = lv_label_create( widgetTemp );
+  lv_label_set_text( labelTargetTempVal, "220" );
+  lv_obj_set_style_text_color( labelTargetTempVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelTargetTempVal, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_align( labelTargetTempVal, LV_ALIGN_TOP_LEFT, 21, 10 );
+  // current temp
+  labelCurrentTempVal = lv_label_create( widgetTemp );
   lv_label_set_text( labelCurrentTempVal, "123" );
-
-  lv_obj_align( labelTargetTimeVal, LV_ALIGN_TOP_MID, -101, 19 );
-  lv_obj_align( labelCurrentTimeVal, LV_ALIGN_TOP_MID, -101, 89 );
-  lv_obj_align( labelTargetTempVal, LV_ALIGN_TOP_MID, 94, 19 );
-  lv_obj_align( labelCurrentTempVal, LV_ALIGN_TOP_MID, 95, 89 );
-  
-  lv_style_init( &styleTime );
-  lv_style_set_bg_opa( &styleTime, LV_OPA_COVER );
-  lv_style_set_radius( &styleTime, 10 );
-  lv_style_set_width( &styleTime, 180 );
-  lv_style_set_height( &styleTime, 130 );
-  lv_style_set_bg_color( &styleTime, lv_palette_lighten(LV_PALETTE_BROWN, 2) );
-  lv_style_set_border_width( &styleTime, 4 );
-  lv_style_set_border_color( &styleTime, lv_palette_main(LV_PALETTE_BLUE) );
-  lv_style_set_pad_ver( &styleTime, 10 );
-  lv_style_set_pad_hor( &styleTime, 0 );
-  lv_style_set_text_color( &styleTime, lv_palette_main(LV_PALETTE_GREEN) );
-  lv_style_set_text_align( &styleTime, LV_TEXT_ALIGN_CENTER );
-  lv_obj_add_style( labelTime, &styleTime, 0 );
-  lv_obj_add_style( labelTemp, &styleTime, 0 );
-
-  // font size & etc
-  lv_style_init( &styleTabHome );
-  lv_style_set_text_decor( &styleTabHome, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabHome, &lv_font_montserrat_32 );
-  lv_style_set_pad_all( &styleTabHome, 15 );
-  lv_obj_add_style( tabHome, &styleTabHome, 0 );
-
-  // trick: invisible button overlapping label (just to have clickable label)
-  lv_style_init( &styleBtn );
-  lv_style_set_bg_opa( &styleBtn, LV_OPA_0 );
-  lv_style_set_radius( &styleBtn, 10 );
-  lv_style_set_width( &styleBtn, 180 );
-  lv_style_set_height( &styleBtn, 130 );
-  lv_style_set_border_width( &styleBtn, 4 );
-  lv_style_set_border_color( &styleBtn, LV_COLOR_MAKE(0xF3, 0x96, 0x21) );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
-  lv_style_set_border_opa( &styleBtn, LV_OPA_COVER );
-  lv_obj_remove_style_all( btnTime );
-  lv_obj_remove_style_all( btnTemp );
-  lv_obj_add_style( btnTime, &styleBtn, 0 );
-  lv_obj_add_style( btnTemp, &styleBtn, 0 );
-  lv_obj_align( btnTime, LV_ALIGN_TOP_LEFT, 5, 5 );
-  lv_obj_align( btnTemp, LV_ALIGN_TOP_LEFT, 200, 5 );
-  lv_obj_remove_flag( btnTime, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( btnTemp, LV_OBJ_FLAG_PRESS_LOCK );
-  GUI_setTimeTempChangeAllowed( true );
+  lv_obj_set_style_text_color( labelCurrentTempVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_align( labelCurrentTempVal, LV_ALIGN_CENTER, 0, 0 );
+  // min/max indicators
+  lv_obj_t * zeroIndic = lv_label_create( widgetTemp );
+  lv_label_set_text( zeroIndic, "--- 0°C" );
+  lv_obj_set_style_text_color( zeroIndic, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( zeroIndic, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_align( zeroIndic, LV_ALIGN_CENTER, -33, 40 );
+  lv_obj_t * targetIndic = lv_label_create( widgetTemp );
+  lv_label_set_text( targetIndic, "---" );
+  lv_obj_set_style_text_color( targetIndic, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( targetIndic, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_align( targetIndic, LV_ALIGN_TOP_LEFT, -2, 10 );
 
   buttonsGroup = BUTTONS_START; // show Start button by default
   createOperatingButtons();
+  GUI_setTimeTempChangeAllowed( true );
 }
 
 static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
@@ -700,7 +727,7 @@ void GUI_SetTabActive( uint32_t tabNr )
 }
 
 void GUI_SetTargetTemp( uint16_t temp ) {
-  char buff[6];
+  char buff[4];
   uint16_t t = temp;
   uint16_t t1, t2, t3;
 
@@ -712,15 +739,12 @@ void GUI_SetTargetTemp( uint16_t temp ) {
   t -= ( t2 * 10 );
   t3 = t;
 
-  buff[0] = '[';
-  buff[1] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[2] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
-  buff[3] = '0' + t3;
-  buff[4] = ']';
-  buff[5] = '\0';
+  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
+  buff[1] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
+  buff[2] = '0' + t3;
+  buff[3] = '\0';
 
   lv_label_set_text( labelTargetTempVal, buff );
-  // lv_label_set_text( labelTargetTempVal, "[---]" );  // used for adjusting label position
 }
 
 void GUI_SetCurrentTemp( uint16_t temp ) {
@@ -777,7 +801,6 @@ void GUI_SetTargetTime( uint32_t time ) {
   buff[7] = '\0';
 
   lv_label_set_text( labelTargetTimeVal, buff );
-  // lv_label_set_text( labelTargetTimeVal, "[00:00]" );  // used for adjusting label position
 }
 
 void GUI_SetCurrentTime( uint32_t time ) {
@@ -858,12 +881,12 @@ void GUI_setOperationButtons( enum operationButton btnGroup ) {
 
 void GUI_setTimeTempChangeAllowed( bool active ) {
   if( active ) {
-    lv_obj_add_event_cb( btnTime, timeEventCb, LV_EVENT_CLICKED, NULL );
-    lv_obj_add_event_cb( btnTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
+    lv_obj_add_event_cb( widgetTime, timeEventCb, LV_EVENT_CLICKED, NULL );
+    lv_obj_add_event_cb( widgetTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
   }
   else {
-    lv_obj_remove_event_cb( btnTime, timeEventCb );
-    lv_obj_remove_event_cb( btnTemp, tempEventCb );
+    lv_obj_remove_event_cb( widgetTime, timeEventCb );
+    lv_obj_remove_event_cb( widgetTemp, tempEventCb );
   }
 }
 
