@@ -364,18 +364,19 @@ static void createOperatingButtons() {
   lv_obj_remove_style_all( containerButtons );
   lv_obj_set_style_width( containerButtons, lv_obj_get_style_width( tabHome, LV_PART_MAIN ), 0 );
   lv_obj_set_style_height( containerButtons, 100, 0 );
-  lv_obj_set_style_border_width( containerButtons, 1, 0 );
-  lv_obj_set_style_border_color( containerButtons, {0, 0, 255}, 0 );
+  lv_obj_set_style_border_width( containerButtons, 0, 0 );
   lv_obj_set_style_pad_all( containerButtons, 2, LV_PART_MAIN );
   lv_obj_set_style_bg_opa( containerButtons, LV_OPA_0, 0 );
   lv_obj_remove_flag( containerButtons, LV_OBJ_FLAG_SCROLLABLE );
-  lv_obj_align( containerButtons, LV_ALIGN_OUT_LEFT_TOP, 0, 200 );
+  lv_obj_align( containerButtons, LV_ALIGN_OUT_LEFT_TOP, 0, 220 );
 
   if( BUTTONS_START == buttonsGroup ) {
     lv_obj_t * btnStart = lv_button_create( containerButtons );
-    lv_obj_set_style_width( btnStart, lv_obj_get_style_width( containerButtons, LV_PART_MAIN ), 0 );
+    lv_obj_set_style_width( btnStart, lv_obj_get_style_width( containerButtons, LV_PART_MAIN ) - 3, 0 );
     lv_obj_set_style_height( btnStart, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
     lv_obj_set_style_bg_color( btnStart, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
+    lv_obj_set_style_shadow_width( btnStart, 0, LV_PART_MAIN );
+    lv_obj_align( btnStart, LV_ALIGN_TOP_LEFT, 5, 0 );
     lv_obj_remove_flag( btnStart, LV_OBJ_FLAG_PRESS_LOCK );
     lv_obj_add_event_cb( btnStart, btnStartEventCb, LV_EVENT_CLICKED, NULL );
 
@@ -386,16 +387,18 @@ static void createOperatingButtons() {
   else if( ( BUTTONS_PAUSE_STOP == buttonsGroup ) || ( BUTTONS_CONTINUE_STOP == buttonsGroup ) ) {
     lv_obj_t * btnPause = lv_button_create( containerButtons );
     lv_obj_t * btnStop = lv_button_create( containerButtons );
-    lv_obj_set_style_width( btnPause, 180, 0 );
+    lv_obj_set_style_width( btnPause, 185, 0 );
     lv_obj_set_style_height( btnPause, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
-    lv_obj_set_style_width( btnStop, 180, 0 );
+    lv_obj_set_style_width( btnStop, 185, 0 );
     lv_obj_set_style_height( btnStop, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 6, 0 );
     lv_obj_set_style_bg_color( btnPause, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
     lv_obj_set_style_bg_color( btnStop, {0xF0, 0x20, 0x20}, 0 );
+    lv_obj_set_style_shadow_width( btnPause, 0, LV_PART_MAIN );
+    lv_obj_set_style_shadow_width( btnStop, 0, LV_PART_MAIN );
     lv_obj_remove_flag( btnPause, LV_OBJ_FLAG_PRESS_LOCK );
     lv_obj_remove_flag( btnStop, LV_OBJ_FLAG_PRESS_LOCK );
-    lv_obj_align( btnPause, LV_ALIGN_TOP_LEFT, 0, 0 );
-    lv_obj_align( btnStop, LV_ALIGN_TOP_LEFT, 200, 0 );
+    lv_obj_align( btnPause, LV_ALIGN_TOP_LEFT, 5, 0 );
+    lv_obj_align( btnStop, LV_ALIGN_TOP_LEFT, 205, 0 );
 
     lv_obj_t * labelBtnPause = lv_label_create( btnPause );
     lv_obj_t * labelBtnStop = lv_label_create( btnStop );
@@ -597,6 +600,7 @@ static void setScreenMain() {
   tabOptions = lv_tabview_add_tab( tabView, LV_SYMBOL_SETTINGS );
 
   lv_obj_remove_flag( lv_tabview_get_content(tabView), LV_OBJ_FLAG_SCROLLABLE );
+  lv_obj_remove_flag( tabHome, LV_OBJ_FLAG_SCROLLABLE );
   // set callback for clicking on TABs
   lv_obj_add_event_cb( tabView, tabEventCb, LV_EVENT_VALUE_CHANGED, NULL );
 
