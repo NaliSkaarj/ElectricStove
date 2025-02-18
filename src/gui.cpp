@@ -622,25 +622,25 @@ static void setScreenMain() {
   lv_style_set_shadow_width( &styleScreenFrame, 0 );
   // top bar
   heatingIndicator1 = lv_button_create( lv_scr_act() );
-  lv_obj_set_size( heatingIndicator1, LV_HOR_RES, 15 );
+  lv_obj_set_size( heatingIndicator1, LV_HOR_RES, 16 );
   lv_obj_align( heatingIndicator1, LV_ALIGN_TOP_MID, 0, 0 );
   lv_obj_add_style( heatingIndicator1, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator1, LV_OBJ_FLAG_CLICKABLE );
   // right bar
   heatingIndicator2 = lv_button_create( lv_scr_act() );
-  lv_obj_set_size( heatingIndicator2, 15, LV_VER_RES );
+  lv_obj_set_size( heatingIndicator2, 16, LV_VER_RES-32 );
   lv_obj_align( heatingIndicator2, LV_ALIGN_RIGHT_MID, 0, 0 );
   lv_obj_add_style( heatingIndicator2, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator2, LV_OBJ_FLAG_CLICKABLE );
   // bottom bar
   heatingIndicator3 = lv_button_create( lv_scr_act() );
-  lv_obj_set_size( heatingIndicator3, LV_HOR_RES, 15 );
+  lv_obj_set_size( heatingIndicator3, LV_HOR_RES, 16 );
   lv_obj_align( heatingIndicator3, LV_ALIGN_BOTTOM_MID, 0, 0 );
   lv_obj_add_style( heatingIndicator3, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator3, LV_OBJ_FLAG_CLICKABLE );
   // left bar
   heatingIndicator4 = lv_button_create( lv_scr_act() );
-  lv_obj_set_size( heatingIndicator4, 15, LV_VER_RES );
+  lv_obj_set_size( heatingIndicator4, 16, LV_VER_RES-32 );
   lv_obj_align( heatingIndicator4, LV_ALIGN_LEFT_MID, 0, 0 );
   lv_obj_add_style( heatingIndicator4, &styleScreenFrame, LV_PART_MAIN );
   lv_obj_clear_flag( heatingIndicator4, LV_OBJ_FLAG_CLICKABLE );
@@ -672,7 +672,7 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
   Serial.println("BLINK_FRAME_TOGGLE");
 
   if( isVisible ){
-    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_COVER );
+    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_30 );
     isVisible = false;
   }
   else {
