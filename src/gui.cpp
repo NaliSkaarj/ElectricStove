@@ -437,6 +437,7 @@ static void setContentHome() {
   progressCircle = lv_arc_create( widgetTime );
   lv_arc_set_rotation( progressCircle, 270 );
   lv_arc_set_bg_angles( progressCircle, 0, 360 );
+  lv_arc_set_range( progressCircle, 0, 1000 );
   lv_obj_set_style_width( progressCircle, 140, LV_PART_MAIN );
   lv_obj_set_style_height( progressCircle, 140, LV_PART_MAIN );
   lv_obj_set_style_arc_color( progressCircle, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
@@ -445,7 +446,7 @@ static void setContentHome() {
   lv_obj_align( progressCircle, LV_ALIGN_CENTER, 0, 0 );
   lv_obj_remove_style( progressCircle, NULL, LV_PART_KNOB );
   lv_obj_remove_flag( progressCircle, LV_OBJ_FLAG_CLICKABLE );
-  lv_arc_set_value( progressCircle, 10 );
+  lv_arc_set_value( progressCircle, 1000 );
 
   // current time
   labelCurrentTimeVal = lv_label_create( widgetTime );
@@ -932,4 +933,10 @@ SPIClass * GUI_getSPIinstance() {
 
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
   setContentList( nameList, nameLength, nameCount );
+}
+
+void GUI_setProgressBar( uint32_t progress ) {
+  if( NULL != progressCircle ) {
+    lv_arc_set_value( progressCircle, progress );
+  }
 }

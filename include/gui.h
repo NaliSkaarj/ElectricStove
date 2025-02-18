@@ -51,7 +51,7 @@ void GUI_SetCurrentTemp( uint16_t temp );
 
 /**
  * Set target time on the screen
- * time     - new time that will be shown in millis
+ * time     - new time that will be shown [ms]
  */
 void GUI_SetTargetTime( uint32_t time );
 
@@ -133,5 +133,11 @@ SPIClass * GUI_getSPIinstance( void );
  * nameCount        - number of position on the list
  */
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount );
+
+/**
+ * Set progress bar's fill out
+ * progress         - how much of circle should be filled out [0,1%] (ie. 25 = 2,5%)
+ */
+void GUI_setProgressBar( uint32_t progress );
 
 #endif  // _GUI_H

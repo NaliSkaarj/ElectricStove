@@ -134,6 +134,13 @@ void loop() {
     GUI_SetCurrentTemp( (uint16_t)HEATER_getCurrentTemperature() );
     uint32_t timeRemaining = HEATER_getTimeRemaining();
 
+    if( 0 < targetHeatingTime ) {
+      uint32_t progressTime = 1000 - (uint32_t)( (float)timeRemaining * 1000 / (float)targetHeatingTime );
+      GUI_setProgressBar( progressTime );
+    } else {
+      GUI_setProgressBar( 0 );
+    }
+
     // show time with seconds when time is less than 1h
     if( MINUTES_TO_MS(60) > timeRemaining ) {
       timeRemaining = MM_SS_TO_HH_MM( timeRemaining );
