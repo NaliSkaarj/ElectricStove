@@ -4,6 +4,9 @@
 #include "buzzer.h"
 #include "myOTA.h"
 
+#define TERMOMETER_BAR_MIN    -30
+#define TERMOMETER_BAR_MAX    115
+
 typedef enum rollerType { ROLLER_TIME = 1, ROLLER_TEMP } roller_t;
 
 static lv_obj_t * tabView;    // main container for 3 tabs
@@ -398,7 +401,7 @@ static void createOperatingButtons() {
     lv_obj_t * labelBtnStop = lv_label_create( btnStop );
 
     if( BUTTONS_CONTINUE_STOP == buttonsGroup ) {
-      lv_label_set_text( labelBtnPause, "CONTINUE" );
+      lv_label_set_text( labelBtnPause, "CONTIN." );
     }
     else {
       lv_label_set_text( labelBtnPause, "PAUSE" );
@@ -478,13 +481,13 @@ static void setContentHome() {
   tempBar = lv_bar_create( widgetTemp );
   lv_obj_set_size( tempBar, 20, 120 );
   lv_obj_align( tempBar, LV_ALIGN_CENTER, -50, 0 );
-  lv_bar_set_range( tempBar, -30, 115 );
+  lv_bar_set_range( tempBar, TERMOMETER_BAR_MIN, TERMOMETER_BAR_MAX );
   lv_obj_set_style_bg_opa( tempBar, LV_OPA_COVER, LV_PART_INDICATOR );
   lv_obj_set_style_bg_grad_color( tempBar, {0x00, 0x00, 0xff}, LV_PART_INDICATOR );   // gradient from blue
   lv_obj_set_style_bg_color( tempBar, {0xff, 0x00, 0x00}, LV_PART_INDICATOR );        // to red
   lv_obj_set_style_bg_grad_dir( tempBar, LV_GRAD_DIR_VER, LV_PART_INDICATOR );
   lv_obj_remove_flag( tempBar, LV_OBJ_FLAG_CLICKABLE );
-  lv_bar_set_value( tempBar, 90, LV_ANIM_OFF );
+  lv_bar_set_value( tempBar, 25, LV_ANIM_OFF );
   // bottom part of thermometer (the bulb)
   lv_obj_t * bulb  = lv_led_create( widgetTemp );
   lv_obj_align( bulb, LV_ALIGN_CENTER, -50, 55 );
@@ -935,8 +938,14 @@ void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t na
   setContentList( nameList, nameLength, nameCount );
 }
 
-void GUI_setProgressBar( uint32_t progress ) {
+void GUI_setTimeBar( uint32_t time ) {
   if( NULL != progressCircle ) {
-    lv_arc_set_value( progressCircle, progress );
+    lv_arc_set_value( progressCircle, time );
+  }
+}
+
+void GUI_setTempBar( int32_t temp ) {
+  if( NULL != tempBar && TERMOMETER_BAR_MAX >= temp && TERMOMETER_BAR_MIN <= temp ) {
+    lv_bar_set_value( tempBar, temp, LV_ANIM_OFF );
   }
 }

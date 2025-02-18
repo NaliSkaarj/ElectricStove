@@ -131,14 +131,21 @@ void loop() {
 
   // handle stuff every 100 miliseconds
   if( currentTime >= next100mS ) {
-    GUI_SetCurrentTemp( (uint16_t)HEATER_getCurrentTemperature() );
+    float currentTemp = HEATER_getCurrentTemperature();
     uint32_t timeRemaining = HEATER_getTimeRemaining();
 
     if( 0 < targetHeatingTime ) {
-      uint32_t progressTime = 1000 - (uint32_t)( (float)timeRemaining * 1000 / (float)targetHeatingTime );
-      GUI_setProgressBar( progressTime );
+      uint32_t barTime = 1000 - (uint32_t)( (float)timeRemaining * 1000 / (float)targetHeatingTime );
+      GUI_setTimeBar( barTime );
     } else {
-      GUI_setProgressBar( 0 );
+      GUI_setTimeBar( 0 );
+    }
+
+    if( 0 < targetHeatingTemp && 0.0f < currentTemp ) {
+      int32_t barTemp = (int32_t)( currentTemp * 100 / (float)targetHeatingTemp );
+      GUI_setTempBar( barTemp );
+    } else {
+      GUI_setTempBar( 20 );   // room temp. by default
     }
 
     // show time with seconds when time is less than 1h
@@ -147,7 +154,7 @@ void loop() {
     }
 
     OTA_LogWrite( timeRemaining );
-    // Serial.println(timeRemaining);
+    GUI_SetCurrentTemp( (uint16_t)currentTemp );
     GUI_SetCurrentTime( timeRemaining );
     next100mS += 100;
   }

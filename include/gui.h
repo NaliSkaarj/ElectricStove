@@ -135,9 +135,15 @@ SPIClass * GUI_getSPIinstance( void );
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount );
 
 /**
- * Set progress bar's fill out
+ * Set time's progress bar fill out
  * progress         - how much of circle should be filled out [0,1%] (ie. 25 = 2,5%)
  */
-void GUI_setProgressBar( uint32_t progress );
+void GUI_setTimeBar( uint32_t progress );
+
+/**
+ * Set temp's progress bar fill out
+ * temp             - current temperature in range from 0 to 'targetTemp'
+ */
+void GUI_setTempBar( int32_t temp );
 
 #endif  // _GUI_H
