@@ -339,3 +339,11 @@ uint32_t HEATER_getTimeRemaining() {
 
   return result;
 }
+
+uint8_t HEATER_getCurrentPower() {
+  return PID_getOutputPercentage();
+}
+
+bool HEATER_isHeating() {
+  return PID_isHeaterActive();
+}

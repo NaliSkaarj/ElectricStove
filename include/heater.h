@@ -71,4 +71,16 @@ float HEATER_getCurrentTemperature( void );
  */
 uint32_t HEATER_getTimeRemaining();
 
+/**
+ * Get actual power factor (0..100%)
+ * return(uint8_t) - current power [%]
+ */
+uint8_t HEATER_getCurrentPower();
+
+/**
+ * Whether the heater is active
+ * return(bool)     - true if heater is active
+ */
+bool HEATER_isHeating();
+
 #endif  // _HEATER_H

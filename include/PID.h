@@ -14,5 +14,7 @@ void PID_SetPoint( uint16_t targetPoint );
 void PID_On();
 void PID_Off();
 void PID_updateTemp( double temp );
+uint8_t PID_getOutputPercentage();
+bool PID_isHeaterActive();
 
 #endif  // _PID_H

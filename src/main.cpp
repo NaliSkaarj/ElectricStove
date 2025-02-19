@@ -134,6 +134,7 @@ void loop() {
   if( currentTime >= next100mS ) {
     float currentTemp = HEATER_getCurrentTemperature();
     uint32_t timeRemaining = HEATER_getTimeRemaining();
+    uint8_t power = HEATER_getCurrentPower();
 
     if( 0 < targetHeatingTime ) {
       uint32_t barTime = 1000 - (uint32_t)( (float)timeRemaining * 1000 / (float)targetHeatingTime );
@@ -157,6 +158,8 @@ void loop() {
     OTA_LogWrite( timeRemaining );
     GUI_SetCurrentTemp( (uint16_t)currentTemp );
     GUI_SetCurrentTime( timeRemaining );
+    GUI_setPowerBar( power );
+    GUI_setPowerIndicator( HEATER_isHeating() );
     next100mS += 100;
   }
 
