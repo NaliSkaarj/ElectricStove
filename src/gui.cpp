@@ -174,6 +174,9 @@ static void btnOkEventCb( lv_event_t * event ) {
     }
   }
 
+  // manual settings remove previously selected bake name
+  lv_label_set_text( labelBakeName, defaultBakeName );
+
   lv_obj_del( containerRoller );
 }
 
