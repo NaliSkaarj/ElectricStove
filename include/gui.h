@@ -146,4 +146,10 @@ void GUI_setTimeBar( uint32_t progress );
  */
 void GUI_setTempBar( int32_t temp );
 
+/**
+ * Set bake name on the screen
+ * bakeName         - name that will be shown on the screen
+ */
+void GUI_setBakeName( const char * bakeName );
+
 #endif  // _GUI_H

@@ -18,6 +18,7 @@ static lv_obj_t * widgetTime;
 static lv_obj_t * widgetTemp;
 static lv_obj_t * progressCircle;
 static lv_obj_t * tempBar;
+static lv_obj_t * labelBakeName;
 static lv_style_t styleScreenFrame;
 static bool       touchEvent = false;
 static lv_obj_t * labelTargetTempVal;
@@ -43,6 +44,7 @@ static uint32_t rollerTime;
 static lv_timer_t * timer_blinkTimeCurrent;
 static lv_timer_t * timer_blinkScreenFrame;
 static lv_timer_t * timer_setDefaultTab;
+const char defaultBakeName[] = "Manual operation";
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -521,6 +523,21 @@ static void setContentHome() {
   lv_obj_set_style_text_font( targetIndic, &lv_font_montserrat_16, LV_PART_MAIN );
   lv_obj_align( targetIndic, LV_ALIGN_TOP_LEFT, -2, 10 );
 
+  // label for bake name
+  labelBakeName = lv_label_create( tabHome );
+  lv_label_set_text( labelBakeName, defaultBakeName );
+  lv_label_set_long_mode( labelBakeName, LV_LABEL_LONG_SCROLL_CIRCULAR );
+  lv_obj_set_style_text_align( labelBakeName, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN );
+  lv_obj_set_style_pad_top(labelBakeName, 4, LV_PART_MAIN);
+  lv_obj_set_style_width( labelBakeName, 384, LV_PART_MAIN );
+  lv_obj_set_style_height( labelBakeName, 38, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( labelBakeName, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( labelBakeName, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( labelBakeName, 10, LV_PART_MAIN );
+  lv_obj_set_style_text_color( labelBakeName, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelBakeName, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_align( labelBakeName, LV_ALIGN_CENTER, 0, 33 );
+
   buttonsGroup = BUTTONS_START; // show Start button by default
   createOperatingButtons();
   GUI_setTimeTempChangeAllowed( true );
@@ -951,5 +968,11 @@ void GUI_setTimeBar( uint32_t time ) {
 void GUI_setTempBar( int32_t temp ) {
   if( NULL != tempBar && TERMOMETER_BAR_MAX >= temp && TERMOMETER_BAR_MIN <= temp ) {
     lv_bar_set_value( tempBar, temp, LV_ANIM_OFF );
+  }
+}
+
+void GUI_setBakeName( const char * bakeName ) {
+  if( NULL != labelBakeName ) {
+    lv_label_set_text( labelBakeName, bakeName );
   }
 }

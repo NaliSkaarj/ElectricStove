@@ -54,6 +54,7 @@ static void bakePickup( uint32_t idx, bool longPress ) {
     targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx ) );
     GUI_SetTargetTemp( targetHeatingTemp );
     GUI_SetTargetTime( targetHeatingTime );
+    GUI_setBakeName( CONF_getBakeName( bakeIdx ) );
 
     if( longPress ) {
       heaterStateRequested = STATE_START_REQUESTED;
