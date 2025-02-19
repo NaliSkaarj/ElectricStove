@@ -152,4 +152,16 @@ void GUI_setTempBar( int32_t temp );
  */
 void GUI_setBakeName( const char * bakeName );
 
+/**
+ * Set power bar fill out with label (ie. "10%")
+ * power            - how much bar should be filled out, sets label also
+ */
+void GUI_setPowerBar( uint32_t power );
+
+/**
+ * Set power indicator (on/off)
+ * active           - whether power indicator should be glowing
+ */
+void GUI_setPowerIndicator( bool active );
+
 #endif  // _GUI_H

@@ -19,6 +19,8 @@ static lv_obj_t * widgetTemp;
 static lv_obj_t * progressCircle;
 static lv_obj_t * tempBar;
 static lv_obj_t * labelBakeName;
+static lv_obj_t * powerBar;
+static lv_obj_t * labelPowerBar;
 static lv_style_t styleScreenFrame;
 static bool       touchEvent = false;
 static lv_obj_t * labelTargetTempVal;
@@ -523,6 +525,30 @@ static void setContentHome() {
   lv_obj_set_style_text_font( targetIndic, &lv_font_montserrat_16, LV_PART_MAIN );
   lv_obj_align( targetIndic, LV_ALIGN_TOP_LEFT, -2, 10 );
 
+  // power bar
+  powerBar = lv_bar_create( tabHome );
+  lv_obj_set_size( powerBar, 30, 107 );
+  lv_obj_align( powerBar, LV_ALIGN_CENTER, 165, -65 );
+  lv_bar_set_range( powerBar, -1, 100 );
+  lv_obj_set_style_pad_all( powerBar, 3, LV_PART_MAIN );
+  lv_obj_set_style_radius( powerBar, 0, LV_PART_MAIN );
+  lv_obj_set_style_radius( powerBar, 0, LV_PART_INDICATOR );
+  lv_obj_set_style_bg_opa( powerBar, LV_OPA_40, LV_PART_INDICATOR );
+  lv_obj_set_style_bg_color( powerBar, {0xff, 0x00, 0x00}, LV_PART_INDICATOR );   // red
+  lv_obj_set_style_border_width( powerBar, 2, LV_PART_MAIN );
+  lv_obj_set_style_border_color( powerBar, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_border_opa( powerBar, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( powerBar, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( powerBar, LV_OBJ_FLAG_CLICKABLE );
+  lv_bar_set_value( powerBar, 0, LV_ANIM_OFF );
+
+  // label for bake name
+  labelPowerBar = lv_label_create( tabHome );
+  lv_label_set_text( labelPowerBar, "0%" );
+  lv_obj_set_style_text_color( labelPowerBar, {0x00, 0x00, 0x00}, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelPowerBar, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_align( labelPowerBar, LV_ALIGN_CENTER, 167, -1 );
+
   // label for bake name
   labelBakeName = lv_label_create( tabHome );
   lv_label_set_text( labelBakeName, defaultBakeName );
@@ -974,5 +1000,31 @@ void GUI_setTempBar( int32_t temp ) {
 void GUI_setBakeName( const char * bakeName ) {
   if( NULL != labelBakeName ) {
     lv_label_set_text( labelBakeName, bakeName );
+  }
+}
+
+void GUI_setPowerBar( uint32_t power ) {
+  if( 100 < power ) {
+    power = 100;
+  }
+
+  if( NULL != labelPowerBar ) {
+    char txt[5];
+    sprintf( txt, "%d%%", power );
+    lv_label_set_text( labelPowerBar, txt );
+  }
+
+  if( NULL != powerBar ) {
+    lv_bar_set_value( powerBar, power, LV_ANIM_OFF );
+  }
+}
+
+void GUI_setPowerIndicator( bool active ) {
+  if( NULL != powerBar ) {
+    if( active ) {
+      lv_obj_set_style_bg_opa( powerBar, LV_OPA_COVER, LV_PART_INDICATOR );
+    } else {
+      lv_obj_set_style_bg_opa( powerBar, LV_OPA_40, LV_PART_INDICATOR );
+    }
   }
 }
