@@ -554,9 +554,16 @@ static void setContentHome() {
   lv_label_set_text( labelBakeName, defaultBakeName );
   lv_label_set_long_mode( labelBakeName, LV_LABEL_LONG_SCROLL_CIRCULAR );
   lv_obj_set_style_text_align( labelBakeName, LV_TEXT_ALIGN_CENTER, LV_PART_MAIN );
-  lv_obj_set_style_pad_top(labelBakeName, 4, LV_PART_MAIN);
-  lv_obj_set_style_width( labelBakeName, 384, LV_PART_MAIN );
+  lv_obj_set_style_pad_top( labelBakeName, 3, LV_PART_MAIN );
+  lv_obj_set_style_pad_hor( labelBakeName, 1, LV_PART_MAIN );
+  lv_obj_set_style_width( labelBakeName, 354, LV_PART_MAIN );
   lv_obj_set_style_height( labelBakeName, 38, LV_PART_MAIN );
+  lv_obj_set_style_margin_all( labelBakeName, 0, LV_PART_MAIN );
+  lv_obj_set_style_border_width( labelBakeName, 1, LV_PART_MAIN );
+  lv_obj_set_style_border_color( labelBakeName, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_outline_width( labelBakeName, 0, LV_PART_MAIN );
+  lv_obj_set_style_outline_pad( labelBakeName, 0, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( labelBakeName, 0, LV_PART_MAIN );
   lv_obj_set_style_bg_color( labelBakeName, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
   lv_obj_set_style_bg_opa( labelBakeName, LV_OPA_20, LV_PART_MAIN );
   lv_obj_set_style_radius( labelBakeName, 10, LV_PART_MAIN );
