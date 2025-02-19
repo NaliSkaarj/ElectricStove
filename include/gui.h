@@ -164,4 +164,16 @@ void GUI_setPowerBar( uint32_t power );
  */
 void GUI_setPowerIndicator( bool active );
 
+/**
+ * Activate sound icon
+ * active           - whether the icon should be glowing
+ */
+void GUI_setSoundIcon( bool active );
+
+/**
+ * Activate WiFi icon
+ * active           - whether the icon should be glowing
+ */
+void GUI_setWiFiIcon( bool active );
+
 #endif  // _GUI_H
