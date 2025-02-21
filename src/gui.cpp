@@ -57,6 +57,7 @@ static void customDisplayFlush( lv_display_t * disp, const lv_area_t * area, uin
 static void customTouchpadRead( lv_indev_t * indev_driver, lv_indev_data_t * data );
 static void tabEventCb( lv_event_t * event );
 static void touchEventCb( lv_event_t * event );
+static void pressingEventCb( lv_event_t * event );
 static void timeEventCb( lv_event_t * event );
 static void tempEventCb( lv_event_t * event );
 static void btnOkEventCb( lv_event_t * event );
@@ -120,6 +121,10 @@ static void touchEventCb( lv_event_t * event ) {
   touchEvent = true;
   lv_timer_reset( timer_setDefaultTab );
   OTA_LogWrite( "TOUCH_EVENT\n" );
+}
+
+static void pressingEventCb( lv_event_t * event ) {
+  lv_timer_reset( timer_setDefaultTab );  // prevent default tab activation when scrolling/pressing bakeList
 }
 
 static void timeEventCb( lv_event_t * event ) {
@@ -649,6 +654,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   lv_obj_set_style_width( bakeList, 15, LV_PART_SCROLLBAR );
   lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_ELASTIC );
   lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_MOMENTUM );
+  lv_obj_add_event_cb( bakeList, pressingEventCb, LV_EVENT_PRESSING, NULL );
 
   if( NULL != nameList && 1000 > nameCount ) {  // max 999 positions on the list allowed
     for( int x=0; x<nameCount; x++ ) {
