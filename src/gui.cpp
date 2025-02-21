@@ -645,6 +645,8 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   lv_obj_set_size( bakeList, lv_obj_get_style_width( tabList, LV_PART_MAIN ), lv_obj_get_style_height( tabList, LV_PART_MAIN ) );
   lv_obj_center( bakeList );
   lv_obj_set_style_radius( bakeList, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( bakeList, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_SCROLLBAR );
+  lv_obj_set_style_width( bakeList, 15, LV_PART_SCROLLBAR );
   lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_ELASTIC );
   lv_obj_remove_flag( bakeList, LV_OBJ_FLAG_SCROLL_MOMENTUM );
 
