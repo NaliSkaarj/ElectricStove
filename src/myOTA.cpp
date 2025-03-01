@@ -18,22 +18,6 @@ void OTA_LogWrite( const int x ) {
 }
 
 void OTA_Setup() {
-  uint8_t tryAgain = 3;
-  ArduinoOTA.setHostname( OTA_HOST_NAME );
-  Serial.println( "OTA setup" );
-  WiFi.mode( WIFI_STA );
-  WiFi.begin( wifi_SSID, wifi_PASS );
-  initialized = true;
-  while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
-    Serial.println( "WiFi connection Failed! Retrying..." );
-    tryAgain--;
-    if( 0 == tryAgain ) {
-      initialized = false;  // no WiFi == no OTA
-      return;
-    }
-    delay( 5000 );
-  }
-
   // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
  
@@ -77,6 +61,28 @@ void OTA_Setup() {
       }
     });
 
+  OTA_On();
+}
+
+void OTA_On() {
+  uint8_t tryAgain = 3;
+  ArduinoOTA.setHostname( OTA_HOST_NAME );
+  Serial.println( "OTA activating..." );
+  WiFi.mode( WIFI_STA );
+  WiFi.begin( wifi_SSID, wifi_PASS );
+  initialized = false;
+  while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
+    Serial.println( "WiFi connection Failed! Retrying..." );
+    tryAgain--;
+    if( 0 == tryAgain ) { 
+      Serial.println( "OTA(On): Couldn't connect to WiFi." );
+      return;   // no WiFi == no OTA
+    }
+    delay( 5000 );
+  }
+
+  initialized = true;
+
   ArduinoOTA.begin();
 
   server.begin();
@@ -85,6 +91,17 @@ void OTA_Setup() {
   Serial.println( "OTA ready!" );
   Serial.print( "IP address: " );
   Serial.println( WiFi.localIP() );
+}
+
+void OTA_Off() {
+  if ( client ) {
+    client.stop();
+  }
+
+  server.end();
+  ArduinoOTA.end();
+  Serial.println( "WiFi disconnected. OTA disabled." );
+  initialized = false;
 }
 
 void OTA_Handle() {
@@ -99,7 +116,6 @@ void OTA_Handle() {
       if ( !client || !client.connected() ) {
         if ( client ) {
           client.stop();
-          // Serial.println( "client.stop()//1" );
         }
         client = server.accept();
         if ( !client ) {
@@ -120,7 +136,6 @@ void OTA_Handle() {
     } else {
       if ( client ) {
         client.stop();
-        // Serial.println( "client.stop()//2" );
       }
     }
     //check UART for data

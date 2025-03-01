@@ -1,5 +1,5 @@
-#ifndef MYOTA_H
-#define MYOTA_H
+#ifndef _OTA_H
+#define _OTA_H
 
 #define PORT 23     // port for telnet connections
 #define OTA_HOST_NAME "ElectricStove"
@@ -15,9 +15,20 @@ void OTA_Setup();
 void OTA_Handle();
 
 /**
+ * Turn on OTA service
+ */
+void OTA_On();
+
+/**
+ * Turn off OTA service
+ */
+void OTA_Off();
+
+/**
  * Send log to client (connected over telnet)
+ * buf/x        - pointer to string or int that will be send to client
  */
 void OTA_LogWrite( const char *buf );
 void OTA_LogWrite( const int x );
 
-#endif  // MYOTA_H
+#endif  // _OTA_H
