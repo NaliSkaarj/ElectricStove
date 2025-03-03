@@ -279,13 +279,13 @@ static void rollerCreate( roller_t rType ) {
 
   lv_style_init( &style_sel );
   lv_style_set_height( &style_sel, lv_obj_get_style_height( containerRoller, LV_PART_MAIN )-70 );
-  lv_style_set_text_font( &style_sel, &lv_font_montserrat_32 );
+  lv_style_set_text_font( &style_sel, &lv_font_montserrat_custom_32 );
   lv_style_set_bg_color( &style_sel, lv_color_hex3(0xf88) );
   lv_style_set_border_width( &style_sel, 0 );
 
   roller1 = lv_roller_create( containerRoller );
   lv_roller_set_visible_row_count( roller1, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller1, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller1, &lv_font_montserrat_custom_24, LV_PART_MAIN );
   lv_obj_set_style_bg_opa( roller1, LV_OPA_60, LV_PART_MAIN );
   lv_obj_set_style_border_color( roller1, lv_color_hex3(0x000), LV_PART_MAIN );
   lv_obj_set_style_border_opa( roller1, LV_OPA_70, LV_PART_MAIN );
@@ -295,7 +295,7 @@ static void rollerCreate( roller_t rType ) {
   roller2 = lv_roller_create( containerRoller );
   lv_roller_set_options( roller2, opts9, LV_ROLLER_MODE_NORMAL );
   lv_roller_set_visible_row_count( roller2, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller2, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller2, &lv_font_montserrat_custom_24, LV_PART_MAIN );
   lv_obj_set_style_bg_opa( roller2, LV_OPA_60, LV_PART_MAIN );
   lv_obj_set_style_border_color( roller2, lv_color_hex3(0x000), LV_PART_MAIN );
   lv_obj_set_style_border_opa( roller2, LV_OPA_70, LV_PART_MAIN );
@@ -304,7 +304,7 @@ static void rollerCreate( roller_t rType ) {
 
   roller3 = lv_roller_create( containerRoller );
   lv_roller_set_visible_row_count( roller3, ROLLER_ROW_COUNT );
-  lv_obj_set_style_text_font( roller3, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( roller3, &lv_font_montserrat_custom_24, LV_PART_MAIN );
   lv_obj_set_style_bg_opa( roller3, LV_OPA_60, LV_PART_MAIN );
   lv_obj_set_style_border_color( roller3, lv_color_hex3(0x000), LV_PART_MAIN );
   lv_obj_set_style_border_opa( roller3, LV_OPA_70, LV_PART_MAIN );
@@ -339,7 +339,7 @@ static void rollerCreate( roller_t rType ) {
     roller4 = lv_roller_create( containerRoller );
     lv_roller_set_options( roller4, opts9, LV_ROLLER_MODE_NORMAL );
     lv_roller_set_visible_row_count( roller4, ROLLER_ROW_COUNT );
-    lv_obj_set_style_text_font( roller4, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+    lv_obj_set_style_text_font( roller4, &lv_font_montserrat_custom_24, LV_PART_MAIN );
     lv_obj_set_style_bg_opa( roller4, LV_OPA_60, LV_PART_MAIN );
     lv_obj_set_style_border_color( roller4, lv_color_hex3(0x000), LV_PART_MAIN );
     lv_obj_set_style_border_opa( roller4, LV_OPA_70, LV_PART_MAIN );
@@ -470,7 +470,7 @@ static void setContentHome() {
   lv_obj_set_style_pad_all( tabHome, 0, LV_PART_MAIN );
   lv_obj_set_style_border_width( tabHome, 0, 0 );
   lv_obj_set_style_text_decor( tabHome, LV_TEXT_DECOR_NONE, 0 );
-  lv_obj_set_style_text_font( tabHome, &lv_font_montserrat_38, 0 );
+  lv_obj_set_style_text_font( tabHome, &lv_font_montserrat_custom_38, 0 );
 
   // clickable time's widget
   widgetTime = lv_button_create( tabHome );
@@ -509,7 +509,7 @@ static void setContentHome() {
   labelTargetTimeVal = lv_label_create( widgetTime );
   lv_label_set_text( labelTargetTimeVal, "[00:00]" );
   lv_obj_set_style_text_color( labelTargetTimeVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelTargetTimeVal, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelTargetTimeVal, &lv_font_montserrat_custom_24, LV_PART_MAIN );
   lv_obj_align( labelTargetTimeVal, LV_ALIGN_CENTER, 0, 20 );
 
   // clickable temp's widget
@@ -549,7 +549,7 @@ static void setContentHome() {
   labelTargetTempVal = lv_label_create( widgetTemp );
   lv_label_set_text( labelTargetTempVal, "220" );
   lv_obj_set_style_text_color( labelTargetTempVal, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelTargetTempVal, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelTargetTempVal, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( labelTargetTempVal, LV_ALIGN_TOP_LEFT, 21, 10 );
   // current temp
   labelCurrentTempVal = lv_label_create( widgetTemp );
@@ -560,12 +560,12 @@ static void setContentHome() {
   lv_obj_t * zeroIndic = lv_label_create( widgetTemp );
   lv_label_set_text( zeroIndic, "--- 0°C" );
   lv_obj_set_style_text_color( zeroIndic, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( zeroIndic, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( zeroIndic, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( zeroIndic, LV_ALIGN_CENTER, -33, 40 );
   lv_obj_t * targetIndic = lv_label_create( widgetTemp );
   lv_label_set_text( targetIndic, "---" );
   lv_obj_set_style_text_color( targetIndic, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( targetIndic, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( targetIndic, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( targetIndic, LV_ALIGN_TOP_LEFT, -2, 10 );
 
   // power bar
@@ -589,7 +589,7 @@ static void setContentHome() {
   labelPowerBar = lv_label_create( tabHome );
   lv_label_set_text( labelPowerBar, "0%" );
   lv_obj_set_style_text_color( labelPowerBar, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelPowerBar, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelPowerBar, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( labelPowerBar, LV_ALIGN_CENTER, 167, -1 );
 
   // label for bake name
@@ -611,21 +611,21 @@ static void setContentHome() {
   lv_obj_set_style_bg_opa( labelBakeName, LV_OPA_20, LV_PART_MAIN );
   lv_obj_set_style_radius( labelBakeName, 10, LV_PART_MAIN );
   lv_obj_set_style_text_color( labelBakeName, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelBakeName, &lv_font_ubuntu_regular_24, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelBakeName, &lv_font_montserrat_custom_24, LV_PART_MAIN );
   lv_obj_align( labelBakeName, LV_ALIGN_CENTER, 0, 33 );
 
   // sound icon
   labelSoundIcon = lv_label_create( tabHome );
   lv_label_set_text( labelSoundIcon, LV_SYMBOL_VOLUME_MAX );
   lv_obj_set_style_text_color( labelSoundIcon, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelSoundIcon, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelSoundIcon, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( labelSoundIcon, LV_ALIGN_CENTER, 150, -134 );
 
   // WiFi icon
   labelWiFiIcon = lv_label_create( tabHome );
   lv_label_set_text( labelWiFiIcon, LV_SYMBOL_WIFI );
   lv_obj_set_style_text_color( labelWiFiIcon, {0x00, 0x00, 0x00}, LV_PART_MAIN );
-  lv_obj_set_style_text_font( labelWiFiIcon, &lv_font_montserrat_16, LV_PART_MAIN );
+  lv_obj_set_style_text_font( labelWiFiIcon, &lv_font_montserrat_custom_16, LV_PART_MAIN );
   lv_obj_align( labelWiFiIcon, LV_ALIGN_CENTER, 180, -134 );
 
   buttonsGroup = BUTTONS_START; // show Start button by default
@@ -643,7 +643,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
   // font size & etc
   lv_style_init( &styleTabList );
   lv_style_set_text_decor( &styleTabList, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabList, &lv_font_ubuntu_regular_24 );
+  lv_style_set_text_font( &styleTabList, &lv_font_montserrat_custom_24 );
   lv_obj_add_style( tabList, &styleTabList, 0 );
 
   /*Create a list*/
@@ -664,7 +664,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
 
       /*Add buttons to the list*/
       snprintf( buffer, nameLength, "%d: %s", (x+1), (nameList + nameLength * x) );
-      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT_ARROW, buffer );  // special character available on lv_font_ubuntu_regular_24 only
+      btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, buffer );
       lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_SHORT_CLICKED, (void *)x );  // use pointer as ordinary value
       lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_LONG_PRESSED, (void *)x );   // use pointer as ordinary value
     }
@@ -684,7 +684,7 @@ static void setContentOptions() {
   // font size & etc
   lv_style_init( &styleTabOptions );
   lv_style_set_text_decor( &styleTabOptions, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabOptions, &lv_font_ubuntu_regular_24 );
+  lv_style_set_text_font( &styleTabOptions, &lv_font_montserrat_custom_24 );
   lv_obj_add_style( tabOptions, &styleTabOptions, 0 );
 }
 
@@ -701,7 +701,7 @@ static void setScreenMain() {
 
   lv_style_init( &styleTabs );
   lv_style_set_text_decor( &styleTabs, LV_TEXT_DECOR_NONE );
-  lv_style_set_text_font( &styleTabs, &lv_font_montserrat_32 );
+  lv_style_set_text_font( &styleTabs, &lv_font_montserrat_custom_32 );
   lv_obj_add_style( tabView, &styleTabs, 0 );
 
   // Add 3 tabs (returned tabs are page (widget of lv_page) and can be scrolled
