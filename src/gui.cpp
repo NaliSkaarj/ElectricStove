@@ -36,6 +36,7 @@ static lv_obj_t * roller2;
 static lv_obj_t * roller3;
 static lv_obj_t * roller4;
 static lv_obj_t * bakeList;
+static lv_obj_t * optionList;
 static updateTimeCb timeChangedCB = NULL;
 static updateTempCb tempChangedCB = NULL;
 static operationCb heatingStartCB = NULL;
@@ -66,6 +67,7 @@ static void btnStartEventCb( lv_event_t * event );
 static void btnStopEventCb( lv_event_t * event );
 static void btnPauseEventCb( lv_event_t * event );
 static void btnBakeSelectEventCb( lv_event_t * event );
+static void btnOptionEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
 static void setContentHome();
@@ -248,6 +250,20 @@ static void btnBakeSelectEventCb( lv_event_t * event ) {
 
   if( NULL != bakePickupCB ) {
     bakePickupCB( (int32_t)lv_event_get_user_data( event ), ( LV_EVENT_LONG_PRESSED == code ) );
+  }
+}
+
+static void btnOptionEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  setting_t *data = (setting_t *)lv_event_get_user_data( event );
+  (void)data;
+
+  if( data->optionCallback ) {
+    data->optionCallback();
   }
 }
 
@@ -465,7 +481,7 @@ static void createOperatingButtons() {
 }
 
 static void setContentHome() {
-  lv_obj_set_style_bg_color( tabHome, lv_palette_darken(LV_PALETTE_GREY, 2), LV_PART_MAIN ); // red
+  lv_obj_set_style_bg_color( tabHome, lv_palette_darken(LV_PALETTE_GREY, 2), LV_PART_MAIN );
   lv_obj_set_style_bg_opa( tabHome, LV_OPA_COVER, LV_PART_MAIN );
   lv_obj_set_style_pad_all( tabHome, 0, LV_PART_MAIN );
   lv_obj_set_style_border_width( tabHome, 0, 0 );
@@ -674,12 +690,11 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
 static void setContentOptions() {
   static lv_style_t styleTabOptions;
 
-  lv_obj_set_style_bg_color( tabOptions, {0x00, 0x00, 0xff}, 0 ); // blue
+  lv_obj_set_style_bg_color( tabOptions, lv_palette_lighten(LV_PALETTE_GREY, 1), LV_PART_MAIN );
   lv_obj_set_style_bg_opa( tabOptions, LV_OPA_COVER, 0 );
-
-  /*Add content to the tabs*/
-  lv_obj_t * label = lv_label_create( tabOptions );
-  lv_label_set_text( label, "Third tab (00F blue)" );
+  lv_obj_set_style_pad_all( tabOptions, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( tabOptions, LV_OBJ_FLAG_SCROLL_ELASTIC );
+  lv_obj_remove_flag( tabOptions, LV_OBJ_FLAG_SCROLL_MOMENTUM );
 
   // font size & etc
   lv_style_init( &styleTabOptions );
@@ -1112,5 +1127,82 @@ void GUI_setWiFiIcon( bool active ) {
     } else {
       lv_obj_set_style_text_opa( labelWiFiIcon, LV_OPA_30, LV_PART_MAIN );
     }
+  }
+}
+
+void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
+  #define OPTION_HEIGHT 60
+
+  if( NULL != options && 0 < cnt ) {
+    for( int x=0; x<cnt; x++ ) {
+      // clickable option's widget
+      lv_obj_t * widgetOption = lv_button_create( tabOptions );
+      lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+      lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+      lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+      lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+      lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+      lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+      lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+      lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+      lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+      lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+      lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, x * OPTION_HEIGHT );
+      lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+      lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+      // lv_obj_add_event_cb( widgetOption, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
+
+      lv_obj_t * label = lv_label_create( widgetOption );
+      lv_label_set_text( label, options[x].name );
+      lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+      lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+      options[x].btn = lv_button_create( widgetOption );
+      lv_obj_set_style_shadow_width( options[x].btn, 0, LV_PART_MAIN );
+      lv_obj_remove_flag( options[x].btn, LV_OBJ_FLAG_PRESS_LOCK );
+      lv_obj_add_event_cb( options[x].btn, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
+      lv_obj_t * labelBtn = lv_label_create( options[x].btn );
+      lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+      lv_obj_center( labelBtn );
+      lv_obj_align( options[x].btn, LV_ALIGN_RIGHT_MID, 0, 0 );
+
+      switch( options[x].valuetype ) {
+        case OPT_VAL_BOOL:
+          if( options[x].currentValue.bValue ) {
+            lv_label_set_text( labelBtn, "On" );
+            lv_obj_set_style_bg_color( options[x].btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
+          } else {
+            lv_label_set_text( labelBtn, "Off" );
+            lv_obj_set_style_bg_color( options[x].btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
+          }
+          break;
+        case OPT_VAL_INT:
+          break;
+        case OPT_VAL_TRIGGER:
+          break;
+      }
+    }
+  }
+}
+
+void GUI_updateOption( setting_t &option ) {
+  switch( option.valuetype ) {
+    case OPT_VAL_BOOL:
+      if( option.btn ) {
+        lv_obj_t * labelBtn = lv_obj_get_child( option.btn, 0 );  // first child is the label in our case
+        lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+        lv_obj_center( labelBtn );
+        if( option.currentValue.bValue ) {
+          lv_label_set_text( labelBtn, "On" );
+          lv_obj_set_style_bg_color( option.btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
+        } else {
+          lv_label_set_text( labelBtn, "Off" );
+          lv_obj_set_style_bg_color( option.btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
+        }
+      }
+      break;
+    case OPT_VAL_INT:
+      break;
+    case OPT_VAL_TRIGGER:
+      break;
   }
 }

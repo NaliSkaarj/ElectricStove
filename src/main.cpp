@@ -15,6 +15,12 @@ static xTimerHandle xTimer;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
 static uint32_t bakeIdx;
+// populate GUI options
+static setting_t settings[] = {     // preserve order according to optionType enum
+  { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
+  { "OTA activation", OPT_VAL_BOOL, 1, NULL },
+};
+
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
@@ -68,6 +74,34 @@ static void bakePickup( uint32_t idx, bool longPress ) {
   GUI_SetTabActive( TAB_MAIN );
 }
 
+static void buzzerActivation() {
+  if( true == settings[ OPTION_BUZZER ].currentValue.bValue ) {
+    Serial.println( "BUZZER should be deactivated" );
+    // BUZZER_Off();
+    settings[ OPTION_BUZZER ].currentValue.bValue = false;
+  } else {
+    Serial.println( "BUZZER should be activated" );
+    // BUZZER_On();
+    settings[ OPTION_BUZZER ].currentValue.bValue = true;
+  }
+  GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
+  GUI_updateOption( settings[ OPTION_BUZZER ] );
+}
+
+static void otaActivation() {
+  if( true == settings[ OPTION_OTA ].currentValue.bValue ) {
+    Serial.println( "OTA should be deactivated" );
+    // OTA_Off();
+    settings[ OPTION_OTA ].currentValue.bValue = false;
+  } else {
+    Serial.println( "OTA should be activated" );
+    // OTA_On();
+    settings[ OPTION_OTA ].currentValue.bValue = true;
+  }
+  GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
+  GUI_updateOption( settings[ OPTION_OTA ] );
+}
+
 static void myTimerCallback( xTimerHandle pxTimer ) 
 {
   // GUI_SetTabActive( 1 );
@@ -106,6 +140,10 @@ void setup() {
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
+  // setup GUI options callbacks
+  settings[ OPTION_BUZZER ].optionCallback = buzzerActivation;
+  settings[ OPTION_OTA ].optionCallback = otaActivation;
+  GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
   // test timer feature
   xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "SPI.h"
+#include "lvgl.h"
 
 #define MINUTE_TO_MILLIS(m)   ((m) * 60 * 1000)
 #define HOUR_TO_MILLIS(h)     ((h) * 60 * 60 * 1000)
@@ -14,6 +15,33 @@ typedef enum operationButton {
     BUTTONS_CONTINUE_STOP,
     BUTTONS_MAX_COUNT
 } buttonsGroup_t;
+
+typedef enum optionType {
+    OPTION_BUZZER = 0,      //count from 0 (used as index)
+    OPTION_OTA,
+    OPTION_MAX_COUNT
+} optionType_t;
+
+typedef enum valueType {
+    OPT_VAL_BOOL = 1,
+    OPT_VAL_INT,
+    OPT_VAL_TRIGGER,
+    OPT_VAL_MAX_COUNT
+} valueType_t;
+
+typedef union currentValue {
+    bool        bValue;
+    int32_t     iValue;
+    uint32_t   uiValue;
+} currentValue_t;
+
+typedef struct setting {
+    char name[32];
+    valueType_t valuetype;
+    currentValue_t currentValue;
+    lv_obj_t * btn;
+    void (* optionCallback)( void );
+} setting_t;
 
 typedef void (* updateTimeCb)( uint32_t );
 typedef void (* updateTempCb)( uint16_t );
@@ -175,5 +203,18 @@ void GUI_setSoundIcon( bool active );
  * active           - whether the icon should be glowing
  */
 void GUI_setWiFiIcon( bool active );
+
+/**
+ * Populate settings screen with provided options
+ * options          - pointer to options data
+ * cnt              - number of options
+ */
+void GUI_optionsPopulate( setting_t options[], uint32_t cnt );
+
+/**
+ * Update option according to internal current state
+ * option           - pointer to option data
+ */
+void GUI_updateOption( setting_t &option );
 
 #endif  // _GUI_H
