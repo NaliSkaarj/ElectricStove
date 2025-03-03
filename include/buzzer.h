@@ -34,4 +34,10 @@ unsigned int BUZZ_Add( unsigned long period );
  */
 bool BUZZ_Delete( int handle );
 
+/**
+ * (De)Activate 'buzzing'
+ * active       -   whether the buzzer should be buzzing (false == muted)
+ */
+void BUZZ_Activate( bool active );
+
 #endif  // BUZZER_H

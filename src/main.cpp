@@ -76,30 +76,31 @@ static void bakePickup( uint32_t idx, bool longPress ) {
 
 static void buzzerActivation() {
   if( true == settings[ OPTION_BUZZER ].currentValue.bValue ) {
-    Serial.println( "BUZZER should be deactivated" );
-    // BUZZER_Off();
+    Serial.println( "BUZZER deactivated" );
     settings[ OPTION_BUZZER ].currentValue.bValue = false;
   } else {
-    Serial.println( "BUZZER should be activated" );
-    // BUZZER_On();
+    Serial.println( "BUZZER activated" );
     settings[ OPTION_BUZZER ].currentValue.bValue = true;
   }
+
+  BUZZ_Activate( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_BUZZER ] );
+  GUI_SetTabActive( 0 );
 }
 
 static void otaActivation() {
   if( true == settings[ OPTION_OTA ].currentValue.bValue ) {
-    Serial.println( "OTA should be deactivated" );
-    // OTA_Off();
+    OTA_Off();
     settings[ OPTION_OTA ].currentValue.bValue = false;
   } else {
-    Serial.println( "OTA should be activated" );
-    // OTA_On();
+    OTA_On();
     settings[ OPTION_OTA ].currentValue.bValue = true;
   }
+
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_OTA ] );
+  GUI_SetTabActive( 0 );
 }
 
 static void myTimerCallback( xTimerHandle pxTimer ) 

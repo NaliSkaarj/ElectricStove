@@ -1150,7 +1150,6 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
       lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, x * OPTION_HEIGHT );
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
-      // lv_obj_add_event_cb( widgetOption, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
 
       lv_obj_t * label = lv_label_create( widgetOption );
       lv_label_set_text( label, options[x].name );

@@ -16,6 +16,7 @@ static Buzzer_t           buzzerList[ BUZZ_BUZZERS_MAX ];   // guarded by mutex
 static unsigned int       idx;
 static unsigned long      globalTime;
 static bool               initialized = false;
+static bool               muted = false;
 static SemaphoreHandle_t  xSemaphore = NULL;
 static StaticSemaphore_t  xMutexBuffer;
 static uint32_t           failSemaphoreCounter = 0;   // debug purpose only
@@ -140,7 +141,11 @@ static void buzzerHandle( unsigned long currentTime ) {
     return;
   }
 
-  digitalWrite( BUZZ_OUTPUT_PIN, activateBuzzing );
+  if( muted ) {
+    digitalWrite( BUZZ_OUTPUT_PIN, LOW );
+  } else {
+    digitalWrite( BUZZ_OUTPUT_PIN, activateBuzzing );
+  }
 }
 
 void BUZZ_Init( void ) {
@@ -261,4 +266,8 @@ bool BUZZ_Delete( int handle ) {
   }
 
   return retValue;
+}
+
+void BUZZ_Activate( bool active ) {
+  muted = !active;
 }
