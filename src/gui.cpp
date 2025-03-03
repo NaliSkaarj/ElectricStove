@@ -543,6 +543,7 @@ static void setContentHome() {
   lv_led_set_color( bulb, {0x00, 0x00, 0xff} );
   lv_led_set_brightness( bulb, 220 );
   lv_obj_set_style_shadow_width( bulb, 0 ,0 );
+  lv_obj_remove_flag( bulb, LV_OBJ_FLAG_CLICKABLE );
 
   // target temp
   labelTargetTempVal = lv_label_create( widgetTemp );
