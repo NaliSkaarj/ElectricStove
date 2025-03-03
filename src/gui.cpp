@@ -618,14 +618,14 @@ static void setContentHome() {
   lv_label_set_text( labelSoundIcon, LV_SYMBOL_VOLUME_MAX );
   lv_obj_set_style_text_color( labelSoundIcon, {0x00, 0x00, 0x00}, LV_PART_MAIN );
   lv_obj_set_style_text_font( labelSoundIcon, &lv_font_montserrat_16, LV_PART_MAIN );
-  lv_obj_align( labelSoundIcon, LV_ALIGN_CENTER, 150, -140 );
+  lv_obj_align( labelSoundIcon, LV_ALIGN_CENTER, 150, -134 );
 
   // WiFi icon
   labelWiFiIcon = lv_label_create( tabHome );
   lv_label_set_text( labelWiFiIcon, LV_SYMBOL_WIFI );
   lv_obj_set_style_text_color( labelWiFiIcon, {0x00, 0x00, 0x00}, LV_PART_MAIN );
   lv_obj_set_style_text_font( labelWiFiIcon, &lv_font_montserrat_16, LV_PART_MAIN );
-  lv_obj_align( labelWiFiIcon, LV_ALIGN_CENTER, 180, -140 );
+  lv_obj_align( labelWiFiIcon, LV_ALIGN_CENTER, 180, -134 );
 
   buttonsGroup = BUTTONS_START; // show Start button by default
   createOperatingButtons();
