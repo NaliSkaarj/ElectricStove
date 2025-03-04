@@ -1179,7 +1179,6 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
           break;
         case OPT_VAL_TRIGGER:
           lv_label_set_text( labelBtn, "DoIt" );
-          lv_obj_set_style_bg_color( options[x].btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
           break;
       }
     }
