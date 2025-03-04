@@ -87,7 +87,7 @@ static void buzzerActivation() {
   BUZZ_Activate( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_BUZZER ] );
-  GUI_SetTabActive( 0 );
+  // GUI_SetTabActive( 0 );
 }
 
 static void otaActivation() {
@@ -101,7 +101,7 @@ static void otaActivation() {
 
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_OTA ] );
-  GUI_SetTabActive( 0 );
+  // GUI_SetTabActive( 0 );
 }
 
 static void bakesReload() {
