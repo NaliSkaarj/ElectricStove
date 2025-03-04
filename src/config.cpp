@@ -174,3 +174,13 @@ char * CONF_getBakeName( uint32_t idx ) {
   }
   return bakeList[ idx ].name;
 }
+
+void CONF_reloadBakeFile() {
+  if( SDCARD_Reinit() ) {
+    // clear old data
+    bakesCount = 0;
+    free( bakeList );
+
+    loadBakesFromFile();
+  }
+}

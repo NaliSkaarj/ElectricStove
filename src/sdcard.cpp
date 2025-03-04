@@ -129,6 +129,12 @@ void SDCARD_Setup( SPIClass * spi ) {
   }
 }
 
+bool SDCARD_Reinit() {
+  SD.end();
+  SDCARD_Setup( sharedSPI );
+  return cardAvailable;
+}
+
 void SDCARD_log() {
   if( !cardAvailable ) {
     return;

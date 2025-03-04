@@ -411,7 +411,7 @@ static void rollerCreate( roller_t rType ) {
 
 static void createOperatingButtons() {
   if( NULL != containerButtons ) {
-    lv_obj_del( containerButtons );
+    lv_obj_delete( containerButtons );
   }
   containerButtons = lv_obj_create( tabHome );
   lv_obj_remove_style_all( containerButtons );
@@ -1064,6 +1064,7 @@ SPIClass * GUI_getSPIinstance() {
 }
 
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
+  lv_obj_delete( bakeList );
   setContentList( nameList, nameLength, nameCount );
 }
 
@@ -1177,6 +1178,8 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
         case OPT_VAL_INT:
           break;
         case OPT_VAL_TRIGGER:
+          lv_label_set_text( labelBtn, "DoIt" );
+          lv_obj_set_style_bg_color( options[x].btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
           break;
       }
     }
@@ -1202,6 +1205,7 @@ void GUI_updateOption( setting_t &option ) {
     case OPT_VAL_INT:
       break;
     case OPT_VAL_TRIGGER:
+      // nothing to do (button is the same)
       break;
   }
 }

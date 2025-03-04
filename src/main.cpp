@@ -19,6 +19,7 @@ static uint32_t bakeIdx;
 static setting_t settings[] = {     // preserve order according to optionType enum
   { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
   { "OTA activation", OPT_VAL_BOOL, 1, NULL },
+  { "Reload Bakes file", OPT_VAL_TRIGGER, 0, NULL },
 };
 
 
@@ -103,6 +104,15 @@ static void otaActivation() {
   GUI_SetTabActive( 0 );
 }
 
+static void bakesReload() {
+  Serial.println( "Reloading Bakes file..." );
+  CONF_reloadBakeFile();
+  free( bakeNames );
+  CONF_getBakeNames( &bakeNames, &bakeCount );
+  GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
+  GUI_SetTabActive( 1 );
+}
+
 static void myTimerCallback( xTimerHandle pxTimer ) 
 {
   // GUI_SetTabActive( 1 );
@@ -144,6 +154,7 @@ void setup() {
   // setup GUI options callbacks
   settings[ OPTION_BUZZER ].optionCallback = buzzerActivation;
   settings[ OPTION_OTA ].optionCallback = otaActivation;
+  settings[ OPTION_BAKES_RELOAD ].optionCallback = bakesReload;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
   // test timer feature

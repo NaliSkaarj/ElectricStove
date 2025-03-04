@@ -16,9 +16,11 @@ typedef enum operationButton {
     BUTTONS_MAX_COUNT
 } buttonsGroup_t;
 
+// available options
 typedef enum optionType {
     OPTION_BUZZER = 0,      //count from 0 (used as index)
     OPTION_OTA,
+    OPTION_BAKES_RELOAD,
     OPTION_MAX_COUNT
 } optionType_t;
 

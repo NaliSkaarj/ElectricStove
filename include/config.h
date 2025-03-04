@@ -84,4 +84,9 @@ uint32_t CONF_getBakeTime( uint32_t idx );
  */
 char * CONF_getBakeName( uint32_t idx );
 
+/**
+ * Read bake list from file
+ */
+void CONF_reloadBakeFile();
+
 #endif  // _CONFIG_H_
