@@ -49,6 +49,7 @@ typedef void (* updateTimeCb)( uint32_t );
 typedef void (* updateTempCb)( uint16_t );
 typedef void (* operationCb)( void );
 typedef void (* bakePickupCb)( uint32_t, bool );
+typedef void (* adjustTimeCb)( int32_t );
 
 /**
  * Need to be called from main Setup/Init function to run the service
@@ -126,6 +127,12 @@ void GUI_setPauseCallback( operationCb func );
  * operationCb      -   callback function
  */
 void GUI_setBakePickupCallback( bakePickupCb func );
+
+/**
+ * Set a callback function that will be called when user click on 'adjTime' option
+ * operationCb      -   callback function
+ */
+void GUI_setAdjustTimeCallback( adjustTimeCb func );
 
 /**
  * Set which group of buttons should be shown on the screen

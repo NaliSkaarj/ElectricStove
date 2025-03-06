@@ -118,6 +118,21 @@ static void bakesReload() {
   GUI_SetTabActive( 1 );
 }
 
+static void adjustTime( int32_t time ) {
+  int32_t newTime = targetHeatingTime + MINUTE_TO_MILLIS( time );
+  Serial.printf( "Adjust Time: %d[min]\n", time );
+
+  if( 0 < newTime && MAX_ALLOWED_TIME > newTime ) {
+    targetHeatingTime = newTime;
+    GUI_SetTargetTime( targetHeatingTime );
+
+    if( STATE_HEATING == heaterState
+    || STATE_HEATING_PAUSE == heaterState ) {
+      HEATER_setTime( targetHeatingTime );
+    }
+  }
+}
+
 static void myTimerCallback( xTimerHandle pxTimer ) 
 {
   // GUI_SetTabActive( 1 );
@@ -153,6 +168,7 @@ void setup() {
   GUI_setStopCallback( heatingStop );     // STOP heating was clicked
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
   GUI_setBakePickupCallback( bakePickup );
+  GUI_setAdjustTimeCallback( adjustTime );
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );

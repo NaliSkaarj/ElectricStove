@@ -43,6 +43,7 @@ static operationCb heatingStartCB = NULL;
 static operationCb heatingStopCB = NULL;
 static operationCb heatingPauseCB = NULL;
 static bakePickupCb bakePickupCB = NULL;
+static adjustTimeCb adjustTimeCB = NULL;
 static buttonsGroup_t buttonsGroup;
 static uint16_t rollerTemp;
 static uint32_t rollerTime;
@@ -68,6 +69,7 @@ static void btnStopEventCb( lv_event_t * event );
 static void btnPauseEventCb( lv_event_t * event );
 static void btnBakeSelectEventCb( lv_event_t * event );
 static void btnOptionEventCb( lv_event_t * event );
+static void btnOptionAdjustTimeEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
 static void setContentHome();
@@ -262,8 +264,21 @@ static void btnOptionEventCb( lv_event_t * event ) {
   setting_t *data = (setting_t *)lv_event_get_user_data( event );
   (void)data;
 
-  if( data->optionCallback ) {
-    data->optionCallback();
+  if( NULL != data ) {
+    if( data->optionCallback ) {
+      data->optionCallback();
+    }
+  }
+}
+
+static void btnOptionAdjustTimeEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  if( NULL != adjustTimeCB ) {
+    adjustTimeCB( (int32_t)lv_event_get_user_data( event ) );
   }
 }
 
@@ -1016,6 +1031,12 @@ void GUI_setBakePickupCallback( bakePickupCb func ) {
   }
 }
 
+void GUI_setAdjustTimeCallback( adjustTimeCb func ) {
+  if( NULL != func ) {
+    adjustTimeCB = func;
+  }
+}
+
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
   if( BUTTONS_MAX_COUNT > btnGroup ) {
     buttonsGroup = btnGroup;
@@ -1148,10 +1169,70 @@ void GUI_setWiFiIcon( bool active ) {
 void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   #define OPTION_HEIGHT 60
 
+  // 4 buttons to add/del few minutes to current baking time
+  lv_obj_t * widgetOption = lv_button_create( tabOptions );
+  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, 0 );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+
+  lv_obj_t * btnDel5m = lv_button_create( widgetOption );
+  lv_obj_set_width( btnDel5m, 80 );
+  lv_obj_set_style_shadow_width( btnDel5m, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( btnDel5m, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnDel5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-5 );   // use pointer as ordinary value
+  lv_obj_t * labelBtn = lv_label_create( btnDel5m );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "-5min" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnDel5m, LV_ALIGN_LEFT_MID, -10, 0 );
+
+  lv_obj_t * btnDel1m = lv_button_create( widgetOption );
+  lv_obj_set_width( btnDel1m, 80 );
+  lv_obj_set_style_shadow_width( btnDel1m, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( btnDel1m, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnDel1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-1 );   // use pointer as ordinary value
+  labelBtn = lv_label_create( btnDel1m );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "-1min" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnDel1m, LV_ALIGN_LEFT_MID, 80, 0 );
+
+  lv_obj_t * btnAdd1m = lv_button_create( widgetOption );
+  lv_obj_set_width( btnAdd1m, 80 );
+  lv_obj_set_style_shadow_width( btnAdd1m, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( btnAdd1m, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnAdd1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)1 );   // use pointer as ordinary value
+  labelBtn = lv_label_create( btnAdd1m );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "+1min" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnAdd1m, LV_ALIGN_RIGHT_MID, -80, 0 );
+
+  lv_obj_t * btnAdd5m = lv_button_create( widgetOption );
+  lv_obj_set_width( btnAdd5m, 80 );
+  lv_obj_set_style_shadow_width( btnAdd5m, 0, LV_PART_MAIN );
+  lv_obj_remove_flag( btnAdd5m, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnAdd5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)5 );   // use pointer as ordinary value
+  labelBtn = lv_label_create( btnAdd5m );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "+5min" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnAdd5m, LV_ALIGN_RIGHT_MID, 10, 0 );
+
   if( NULL != options && 0 < cnt ) {
     for( int x=0; x<cnt; x++ ) {
       // clickable option's widget
-      lv_obj_t * widgetOption = lv_button_create( tabOptions );
+      widgetOption = lv_button_create( tabOptions );
       lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
       lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
       lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
@@ -1162,7 +1243,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
       lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
       lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
       lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-      lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, x * OPTION_HEIGHT );
+      lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, (x+1) * OPTION_HEIGHT );
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
 
