@@ -25,6 +25,11 @@ static setting_t settings[] = {     // preserve order according to optionType en
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
+
+  if( MAX_ALLOWED_TIME < targetHeatingTime ) {
+    targetHeatingTime = MAX_ALLOWED_TIME;
+  }
+
   GUI_SetTargetTime( targetHeatingTime );
 }
 
