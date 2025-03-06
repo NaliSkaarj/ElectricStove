@@ -408,8 +408,8 @@ static void rollerCreate( roller_t rType ) {
   lv_obj_add_style( btnCancel, &styleBtn, 0 );
   lv_obj_set_style_bg_color( btnOk, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
   lv_obj_set_style_bg_color( btnCancel, LV_COLOR_MAKE(0x36, 0x43, 0xF4), 0 );
-  lv_obj_align( btnOk, LV_ALIGN_TOP_LEFT, 0, 234 );
-  lv_obj_align( btnCancel, LV_ALIGN_TOP_LEFT, 180, 234 );
+  lv_obj_align( btnCancel, LV_ALIGN_TOP_LEFT, 0, 234 );
+  lv_obj_align( btnOk, LV_ALIGN_TOP_LEFT, 180, 234 );
   lv_obj_remove_flag( btnOk, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( btnCancel, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_add_event_cb( btnOk, btnOkEventCb, LV_EVENT_CLICKED, &rollerType );
