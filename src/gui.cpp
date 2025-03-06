@@ -334,6 +334,11 @@ static void rollerCreate( roller_t rType ) {
     lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 145, -31 );
     lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 230, -31 );
 
+    lv_obj_t * labelTemp = lv_label_create( containerRoller );
+    lv_label_set_text( labelTemp, "°C" );
+    lv_obj_set_style_text_color( labelTemp, {0xFF, 0xFF, 0xFF}, LV_PART_MAIN );
+    lv_obj_align( labelTemp, LV_ALIGN_CENTER, 145, -29 );
+
     uint32_t rTemp = rollerTemp;
     uint8_t t1 = (uint16_t)(rTemp / 100);
     rTemp -= ( t1 * 100 );
@@ -348,9 +353,9 @@ static void rollerCreate( roller_t rType ) {
   else if( ROLLER_TIME == rollerType ) {  // ROLLER_TIME
     lv_roller_set_options( roller1, opts9, LV_ROLLER_MODE_NORMAL );
     lv_roller_set_options( roller3, opts5, LV_ROLLER_MODE_NORMAL );
-    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 20, -31 );
-    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 100, -31 );
-    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 190, -31 );
+    lv_obj_align( roller1, LV_ALIGN_LEFT_MID, 15, -31 );
+    lv_obj_align( roller2, LV_ALIGN_LEFT_MID, 90, -31 );
+    lv_obj_align( roller3, LV_ALIGN_LEFT_MID, 185, -31 );
 
     roller4 = lv_roller_create( containerRoller );
     lv_roller_set_options( roller4, opts9, LV_ROLLER_MODE_NORMAL );
@@ -361,7 +366,16 @@ static void rollerCreate( roller_t rType ) {
     lv_obj_set_style_border_opa( roller4, LV_OPA_70, LV_PART_MAIN );
     lv_obj_set_width( roller4, ROLLER_WIDTH );
     lv_obj_add_style( roller4, &style_sel, LV_PART_SELECTED );
-    lv_obj_align( roller4, LV_ALIGN_LEFT_MID, 270, -31 );
+    lv_obj_align( roller4, LV_ALIGN_LEFT_MID, 260, -31 );
+
+    lv_obj_t * labelHour = lv_label_create( containerRoller );
+    lv_obj_t * labelMinute = lv_label_create( containerRoller );
+    lv_label_set_text( labelHour, "h" );
+    lv_label_set_text( labelMinute, "m" );
+    lv_obj_set_style_text_color( labelHour, {0xFF, 0xFF, 0xFF}, LV_PART_MAIN );
+    lv_obj_set_style_text_color( labelMinute, {0xFF, 0xFF, 0xFF}, LV_PART_MAIN );
+    lv_obj_align( labelHour, LV_ALIGN_CENTER, -10, -30 );
+    lv_obj_align( labelMinute, LV_ALIGN_CENTER, 167, -30 );
 
     uint32_t rTime = rollerTime;
     uint32_t h1 = (uint32_t)(rTime / HOUR_TO_MILLIS(10));
