@@ -2,6 +2,9 @@
 #include "sdcard.h"
 #include "helper.h"
 #include "ArduinoJson.h"
+#include "EEPROM.h"
+
+#define EEPROM_SIZE     1024  // 1kB from eeprom(flash) used
 
 typedef struct option
 {
@@ -10,22 +13,9 @@ typedef struct option
 } option_t;
 
 static bool configAvailable = false;
-static option_t options[ OPTIONS_COUNT ];
 static bake_t * bakeList = NULL;          //dynamically allocated buffer
 static uint32_t bakesCount = 0;
 static JsonDocument doc;
-
-static void loadConfiguration() {
-  // TODO-later_maybe: read file config.ini and set local options variable
-  int val;
-
-  for( int x=0; x<OPTIONS_COUNT; x++ ) {
-    val = SDCARD_readFile( options[x].fileName.c_str() );
-    if( 0 <= val ) {
-      options[x].val = val;
-    }
-  }
-}
 
 static void setBakesDefault() {
   // bakeList[0].name = "Wypiek #1";
@@ -101,35 +91,66 @@ static void loadBakesFromFile() {
 }
 
 void CONF_Init( SPIClass * spi ) {
-  for( int x=0; x<OPTIONS_COUNT; x++ ) {
-    options[ x ].val = 0;
-    options[ x ].fileName = (String)"/file" + (String)x;
-  }
-
   SDCARD_Setup( spi );
 
-  loadConfiguration();
   configAvailable = true;
 
   // setBakesDefault();
   loadBakesFromFile();
 }
 
-int CONF_getOption( enum options option ) {
+int CONF_getOptionInt( int32_t option ) {
   if( false == configAvailable ) {
     return -1;
   }
 
-  return options[ option ].val;
+  int32_t retVal = 0;
+
+  if( EEPROM.begin( EEPROM_SIZE ) ) {
+    retVal = EEPROM.readInt( option );
+    EEPROM.end();
+  }
+
+  return retVal;
 }
 
-void CONF_setOption( enum options option, int val ) {
+bool CONF_getOptionBool( int32_t option ) {
+  if( false == configAvailable ) {
+    return false;
+  }
+
+  bool retVal = false;
+
+  if( EEPROM.begin( EEPROM_SIZE ) ) {
+    retVal = EEPROM.readBool( option );
+    EEPROM.end();
+  }
+
+  return retVal;
+}
+
+void CONF_setOptionBool( int32_t option, bool value ) {
   if( false == configAvailable ) {
     return;
   }
 
-  options[ option ].val = val;
-  SDCARD_writeFile( options[ option ].fileName.c_str(), options[ option ].val );
+  if( EEPROM.begin( EEPROM_SIZE ) ) {
+    EEPROM.writeInt( option, value );
+    EEPROM.commit();
+    EEPROM.end();
+  }
+}
+
+void CONF_setOptionInt( int32_t option, int32_t value ) {
+  if( false == configAvailable ) {
+    return;
+  }
+
+  if( EEPROM.begin( EEPROM_SIZE ) ) {
+    EEPROM.writeBool( option, value );
+    EEPROM.commit();
+    EEPROM.end();
+  }
 }
 
 void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {

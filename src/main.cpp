@@ -20,6 +20,7 @@ static setting_t settings[] = {     // preserve order according to optionType en
   { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
   { "OTA activation", OPT_VAL_BOOL, 1, NULL },
   { "Reload Bakes file", OPT_VAL_TRIGGER, 0, NULL },
+  { "Store settings", OPT_VAL_TRIGGER, 0, NULL },
 };
 
 
@@ -118,6 +119,12 @@ static void bakesReload() {
   GUI_SetTabActive( 1 );
 }
 
+static void storeSettings() {
+  CONF_setOptionBool( (int32_t)OPTION_BUZZER, settings[ OPTION_BUZZER ].currentValue.bValue );
+  CONF_setOptionBool( (int32_t)OPTION_OTA, settings[ OPTION_OTA ].currentValue.bValue );
+  Serial.printf( "Saved options:\nOPTION_BUZZER: %d\nOPTION_OTA: %d\n", settings[ OPTION_BUZZER ].currentValue.bValue, settings[ OPTION_OTA ].currentValue.bValue );
+}
+
 static void adjustTime( int32_t time ) {
   int32_t newTime = targetHeatingTime + MINUTE_TO_MILLIS( time );
   Serial.printf( "Adjust Time: %d[min]\n", time );
@@ -172,10 +179,23 @@ void setup() {
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
+
+  settings[ OPTION_BUZZER ].currentValue.bValue = CONF_getOptionBool( (int32_t)OPTION_BUZZER );
+  settings[ OPTION_OTA ].currentValue.bValue = CONF_getOptionBool( (int32_t)OPTION_OTA );
+  BUZZ_Activate( settings[ OPTION_BUZZER ].currentValue.bValue );
+  GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
+  if( true == settings[ OPTION_OTA ].currentValue.bValue ) {
+    OTA_On();
+  } else {
+    OTA_Off();
+  }
+  GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
+
   // setup GUI options callbacks
   settings[ OPTION_BUZZER ].optionCallback = buzzerActivation;
   settings[ OPTION_OTA ].optionCallback = otaActivation;
   settings[ OPTION_BAKES_RELOAD ].optionCallback = bakesReload;
+  settings[ OPTION_SAVE ].optionCallback = storeSettings;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
   // test timer feature

@@ -21,6 +21,7 @@ typedef enum optionType {
     OPTION_BUZZER = 0,      //count from 0 (used as index)
     OPTION_OTA,
     OPTION_BAKES_RELOAD,
+    OPTION_SAVE,
     OPTION_MAX_COUNT
 } optionType_t;
 

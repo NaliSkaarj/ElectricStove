@@ -41,17 +41,18 @@ void CONF_Init( SPIClass * spi );
  * Get specific configuration option
  * option   - which options you're interested in
  * 
- * return   - options value or
- *            -1 when failed
+ * return   - options value
  */
-int CONF_getOption( enum options option );
+int CONF_getOptionInt( int32_t option );
+bool CONF_getOptionBool( int32_t option );
 
 /**
- * Set specific configuration option value
- * option   - which options you're interested in
- * val      - new value to be set
+ * Set specific configuration option
+ * option   - which options you're interested in (EEPROM address)
+ * value    - value to be stored
  */
-void CONF_setOption( enum options option, int val );
+void CONF_setOptionBool( int32_t option, bool value );
+void CONF_setOptionInt( int32_t option, int32_t value );
 
 /**
  * Get all names from bake list
