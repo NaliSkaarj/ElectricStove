@@ -1137,7 +1137,7 @@ void GUI_setPowerBar( uint32_t power ) {
 
   if( NULL != labelPowerBar ) {
     char txt[5];
-    sprintf( txt, "%d%%", power );
+    sprintf( txt, "%u%%", power );
     lv_label_set_text( labelPowerBar, txt );
   }
 
