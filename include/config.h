@@ -5,8 +5,9 @@
 #include "WString.h"
 
 // #define BAKES_COUNT       20
-#define BAKE_NAME_LENGTH  64
-#define BAKE_FILE_NAME    "/bakes2.txt"
+#define BAKE_NAME_LENGTH    64
+#define BAKE_FILE_NAME      "/bakes1.txt"
+#define BAKE_MAX_STEPS      10    // how much steps can be in one 'bakes curve'
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
 
@@ -26,9 +27,15 @@ enum options {
 
 typedef struct
 {
-  bakeName  name;
-  uint32_t  temp;
-  uint32_t  time;
+  int32_t  temp;
+  int32_t  time;
+} bakeStep_t;
+
+typedef struct
+{
+  bakeName    name;
+  uint32_t    stepCount;
+  bakeStep_t  step[ BAKE_MAX_STEPS ];
 } bake_t;
 
 /**
@@ -64,18 +71,20 @@ void CONF_getBakeNames( bakeName **bList, uint32_t *cnt );
 /**
  * Get temperature for specified bake
  * idx      - index for particular bake on the list (count from 0)
+ * step     - step for which value will be returned (count from 0)
  * 
  * return   - temperature
  */
-uint32_t CONF_getBakeTemp( uint32_t idx );
+uint32_t CONF_getBakeTemp( uint32_t idx, uint32_t step );
 
 /**
  * Get time for specified bake
  * idx      - index for particular bake on the list (count from 0)
+ * step     - step for which value will be returned (count from 0)
  * 
  * return   - time (in seconds)
  */
-uint32_t CONF_getBakeTime( uint32_t idx );
+uint32_t CONF_getBakeTime( uint32_t idx, uint32_t step );
 
 /**
  * Get specified bake's name

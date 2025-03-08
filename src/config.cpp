@@ -17,38 +17,20 @@ static bake_t * bakeList = NULL;          //dynamically allocated buffer
 static uint32_t bakesCount = 0;
 static JsonDocument doc;
 
-static void setBakesDefault() {
-  // bakeList[0].name = "Wypiek #1";
-  // bakeList[0].temp = 100;
-  // bakeList[0].time = HOURS_TO_SECONDS( 1 );
-  // bakeList[1].name = "Wypiek #2";
-  // bakeList[1].temp = 150;
-  // bakeList[1].time = HOURS_TO_SECONDS( 1 );
-  // bakeList[2].name = "Wypiek #3";
-  // bakeList[2].temp = 200;
-  // bakeList[2].time = HOURS_TO_SECONDS( 1 );
-  // bakeList[3].name = "Wypiek #4";
-  // bakeList[3].temp = 150;
-  // bakeList[3].time = HOURS_TO_SECONDS( 1 );
-  // bakeList[4].name = "Wypiek #5";
-  // bakeList[4].temp = 200;
-  // bakeList[4].time = HOURS_TO_SECONDS( 1 );
+static void setBakeExample() {
+  doc["count"] = 2;
 
   doc["data"][0]["name"] = "Wypiek #1";
-  doc["data"][0]["temp"] = 101;
-  doc["data"][0]["time"] = HOURS_TO_SECONDS( 1 );
+  doc["data"][0]["stepCount"] = 1;
+  doc["data"][0]["step"][0]["temp"] = 101;
+  doc["data"][0]["step"][0]["time"] = HOURS_TO_SECONDS( 1 );
+
   doc["data"][1]["name"] = "Wypiek #2";
-  doc["data"][1]["temp"] = 102;
-  doc["data"][1]["time"] = HOURS_TO_SECONDS( 1 );
-  doc["data"][2]["name"] = "Wypiek #3";
-  doc["data"][2]["temp"] = 103;
-  doc["data"][2]["time"] = HOURS_TO_SECONDS( 1 );
-  doc["data"][3]["name"] = "Wypiek #4";
-  doc["data"][3]["temp"] = 104;
-  doc["data"][3]["time"] = HOURS_TO_SECONDS( 1 );
-  doc["data"][4]["name"] = "Wypiek #5";
-  doc["data"][4]["temp"] = 105;
-  doc["data"][4]["time"] = HOURS_TO_SECONDS( 1 );
+  doc["data"][1]["stepCount"] = 2;
+  doc["data"][1]["step"][0]["temp"] = 50;
+  doc["data"][1]["step"][0]["time"] = MINUTES_TO_SECONDS( 10 );
+  doc["data"][1]["step"][1]["temp"] = 100;
+  doc["data"][1]["step"][1]["time"] = MINUTES_TO_SECONDS( 20 );
 
   String output;
   serializeJson( doc, output );
@@ -77,16 +59,14 @@ static void loadBakesFromFile() {
 
     for( int i = 0; i < bakesCount; i++ ) {
       strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof( bakeList[i].name ) );
-      bakeList[i].temp = doc["data"][i]["temp"];
-      bakeList[i].time = doc["data"][i]["time"];
+      bakeList[i].stepCount = doc["data"][i]["stepCount"];
+      for( int s = 0; s < bakeList[i].stepCount; s++ ) {
+        bakeList[i].step[s].temp = doc["data"][i]["step"][s]["temp"];
+        bakeList[i].step[s].time = doc["data"][i]["step"][s]["time"];
+      }
     }
 
     free( buffer );
-  }
-
-  Serial.println( "bakeList:" );
-  for( int i = 0; i < bakesCount; i++ ) {
-    Serial.printf( "[%d]Name:%s;Temp:%d;Time:%d\n", i, bakeList[i].name, bakeList[i].temp, bakeList[i].time );
   }
 }
 
@@ -95,7 +75,7 @@ void CONF_Init( SPIClass * spi ) {
 
   configAvailable = true;
 
-  // setBakesDefault();
+  // setBakeExample();
   loadBakesFromFile();
 }
 
@@ -157,6 +137,8 @@ void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {
   bakeName * bakeNames;
 
   if( NULL == bakeList ) {
+    *bList = NULL;
+    *cnt = 0;
     return;
   }
 
@@ -175,18 +157,18 @@ void CONF_getBakeNames( bakeName **bList, uint32_t *cnt ) {
   }
 }
 
-uint32_t CONF_getBakeTemp( uint32_t idx ) {
-  if( NULL == bakeList || bakesCount <= idx ) {
+uint32_t CONF_getBakeTemp( uint32_t idx, uint32_t step ) {
+  if( NULL == bakeList || bakesCount <= idx || BAKE_MAX_STEPS <= step ) {
     return 0;
   }
-  return bakeList[ idx ].temp;
+  return bakeList[ idx ].step[ step ].temp;
 }
 
-uint32_t CONF_getBakeTime( uint32_t idx ) {
-  if( NULL == bakeList || bakesCount <= idx ) {
+uint32_t CONF_getBakeTime( uint32_t idx, uint32_t step ) {
+  if( NULL == bakeList || bakesCount <= idx || BAKE_MAX_STEPS <= step ) {
     return 0;
   }
-  return bakeList[ idx ].time;
+  return bakeList[ idx ].step[ step ].time;
 }
 
 char * CONF_getBakeName( uint32_t idx ) {
