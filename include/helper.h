@@ -16,4 +16,18 @@ typedef enum heater_state {
     STATE_MAX
 } heater_state;
 
+enum tabs {
+    TAB_MAIN = 0,
+    TAB_LIST,
+    TAB_OPTIONS,
+    TAB_COUNT
+};
+
+enum options {
+    BUZZER_MENU = 0,
+    BUZZER_HEATING,
+    OTA_ACTIVE,
+    OPTIONS_COUNT
+};
+  
 #endif  // _HELPER_H

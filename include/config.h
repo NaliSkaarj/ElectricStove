@@ -11,20 +11,6 @@
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
 
-enum tabs {
-  TAB_MAIN = 0,
-  TAB_LIST,
-  TAB_OPTIONS,
-  TAB_COUNT
-};
-
-enum options {
-  BUZZER_MENU = 0,
-  BUZZER_HEATING,
-  OTA_ACTIVE,
-  OPTIONS_COUNT
-};
-
 typedef struct
 {
   int32_t  temp;
