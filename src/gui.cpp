@@ -1110,8 +1110,17 @@ void GUI_setTimeBar( uint32_t time ) {
 }
 
 void GUI_setTempBar( int32_t temp ) {
-  if( NULL != tempBar && TERMOMETER_BAR_MAX >= temp && TERMOMETER_BAR_MIN <= temp ) {
-    lv_bar_set_value( tempBar, temp, LV_ANIM_OFF );
+  int32_t t = temp;
+
+  if( TERMOMETER_BAR_MAX < t ) {
+    t = TERMOMETER_BAR_MAX;
+  }
+  if( TERMOMETER_BAR_MIN > t ) {
+    t = TERMOMETER_BAR_MIN;
+  }
+
+  if( NULL != tempBar ) {
+    lv_bar_set_value( tempBar, t, LV_ANIM_OFF );
   }
 }
 
