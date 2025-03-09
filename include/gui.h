@@ -95,43 +95,43 @@ void GUI_SetCurrentTime( uint32_t time );
 
 /**
  * Set a callback function that will be called when new time is provided by user
- * updateTimeCb     -   callback function
+ * func         -   callback function
  */
 void GUI_setTimeCallback( updateTimeCb func );
 
 /**
  * Set a callback function that will be called when new temperature is provided by user
- * updateTempCb     -   callback function
+ * func         -   callback function
  */
 void GUI_setTempCallback( updateTempCb func );
 
 /**
  * Set a callback function that will be called when user click on START button
- * operationCb      -   callback function
+ * func         -   callback function
  */
 void GUI_setStartCallback( operationCb func );
 
 /**
  * Set a callback function that will be called when user click on STOP button
- * operationCb      -   callback function
+ * func         -   callback function
  */
 void GUI_setStopCallback( operationCb func );
 
 /**
  * Set a callback function that will be called when user click on PAUSE button
- * operationCb      -   callback function
+ * func         -   callback function
  */
 void GUI_setPauseCallback( operationCb func );
 
 /**
  * Set a callback function that will be called when user click on bake list
- * operationCb      -   callback function
+ * func         -   callback function
  */
 void GUI_setBakePickupCallback( bakePickupCb func );
 
 /**
  * Set a callback function that will be called when user click on 'adjTime' option
- * operationCb      -   callback function
+ * func         -   callback function
  */
 void GUI_setAdjustTimeCallback( adjustTimeCb func );
 
