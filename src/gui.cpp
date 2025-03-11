@@ -31,6 +31,7 @@ static lv_obj_t * labelCurrentTempVal;
 static lv_obj_t * labelCurrentTimeVal;
 static lv_obj_t * containerRoller;
 static lv_obj_t * containerButtons;
+static lv_obj_t * containerBakesRemoval;
 static lv_obj_t * roller1;
 static lv_obj_t * roller2;
 static lv_obj_t * roller3;
@@ -44,12 +45,14 @@ static operationCb heatingStopCB = NULL;
 static operationCb heatingPauseCB = NULL;
 static bakePickupCb bakePickupCB = NULL;
 static adjustTimeCb adjustTimeCB = NULL;
+static removeBakesCb removeBakesCB = NULL;
 static buttonsGroup_t buttonsGroup;
 static uint16_t rollerTemp;
 static uint32_t rollerTime;
 static lv_timer_t * timer_blinkTimeCurrent;
 static lv_timer_t * timer_blinkScreenFrame;
 static lv_timer_t * timer_setDefaultTab;
+uint8_t bakesToRemoveList[ BAKES_TO_REMOVE_MAX ];
 const char defaultBakeName[] = "Manual operation";
 
 TFT_eSPI tft = TFT_eSPI();
@@ -70,6 +73,10 @@ static void btnPauseEventCb( lv_event_t * event );
 static void btnBakeSelectEventCb( lv_event_t * event );
 static void btnOptionEventCb( lv_event_t * event );
 static void btnOptionAdjustTimeEventCb( lv_event_t * event );
+static void btnOptionRemoveBakesEventCb( lv_event_t * event );
+static void btnBakesRemovalCancelEventCb( lv_event_t * event );
+static void btnBakesRemovalDeleteEventCb( lv_event_t * event );
+static void checkboxChangedEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
 static void setContentHome();
@@ -279,6 +286,174 @@ static void btnOptionAdjustTimeEventCb( lv_event_t * event ) {
 
   if( NULL != adjustTimeCB ) {
     adjustTimeCB( (int32_t)lv_event_get_user_data( event ) );
+  }
+}
+
+static void btnOptionRemoveBakesEventCb( lv_event_t * event ) {
+  if( containerBakesRemoval ) {
+    lv_event_stop_processing( event );
+    return;
+  }
+
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  // clear list with bakes indexes
+  for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    bakesToRemoveList[ x ] = 0;
+  }
+
+  // create container for bake list
+  containerBakesRemoval = lv_obj_create( tabOptions );
+  lv_obj_set_style_border_width( containerBakesRemoval, 4, 0 );
+  lv_obj_set_style_width( containerBakesRemoval, lv_obj_get_style_width( tabOptions, LV_PART_MAIN )-3, LV_PART_MAIN );
+  lv_obj_set_style_height( containerBakesRemoval, lv_obj_get_style_height( tabOptions, LV_PART_MAIN )-3, LV_PART_MAIN );
+  lv_obj_set_style_radius( containerBakesRemoval, 10, LV_PART_MAIN );
+  lv_obj_set_style_bg_color( containerBakesRemoval, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( containerBakesRemoval, LV_OPA_80, LV_PART_MAIN );
+  lv_obj_set_style_border_width( containerBakesRemoval, 2, LV_PART_MAIN );
+  lv_obj_set_style_border_color( containerBakesRemoval, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_border_opa( containerBakesRemoval, LV_OPA_90, LV_PART_MAIN );
+  lv_obj_align( containerBakesRemoval, LV_ALIGN_CENTER, 0, lv_obj_get_scroll_y( tabOptions ) );
+  lv_obj_remove_flag( containerBakesRemoval, LV_OBJ_FLAG_SCROLLABLE );
+  lv_obj_remove_flag( containerBakesRemoval, LV_OBJ_FLAG_SCROLL_CHAIN );
+
+  lv_obj_t * containerBakesList = lv_obj_create( containerBakesRemoval );
+  lv_obj_set_style_border_width( containerBakesList, 0, LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( containerBakesList, LV_OPA_TRANSP, LV_PART_MAIN );
+  lv_obj_set_style_pad_all( containerBakesList, 0, LV_PART_MAIN );
+  lv_obj_set_style_width( containerBakesList, 0, LV_PART_SCROLLBAR );
+  lv_obj_set_style_width( containerBakesList, lv_obj_get_style_width( containerBakesRemoval, LV_PART_MAIN )+2, LV_PART_MAIN );
+  lv_obj_set_style_height( containerBakesList, lv_obj_get_style_height( containerBakesRemoval, LV_PART_MAIN )-7, LV_PART_MAIN );
+  lv_obj_align( containerBakesList, LV_ALIGN_TOP_MID, 0, -15 );
+  lv_obj_remove_flag( containerBakesList, LV_OBJ_FLAG_SCROLL_ELASTIC );
+  lv_obj_remove_flag( containerBakesList, LV_OBJ_FLAG_SCROLL_MOMENTUM );
+  lv_obj_set_scroll_dir( containerBakesList, LV_DIR_VER );
+
+  // populate container with bake names
+  lv_obj_t * btn;
+  uint32_t idx = 0;
+  while( btn = lv_obj_get_child( bakeList, idx ) ) {
+    lv_obj_t * cb = lv_checkbox_create( containerBakesList );
+    lv_obj_t * label = lv_obj_get_child( btn, 1 );  // index 0: ICON, index 1: LABEL of the button
+
+    if( label ) {
+      lv_checkbox_set_text( cb, lv_label_get_text( label ) );
+    } else {
+      lv_checkbox_set_text( cb, "..." );
+    }
+    lv_obj_set_style_text_color( cb, {0xE0, 0xE0, 0xE0}, LV_PART_MAIN );
+    lv_obj_add_event_cb( cb, checkboxChangedEventCb, LV_EVENT_VALUE_CHANGED, (void *)(idx+1) ); // counts elements from 1
+    lv_obj_align( cb, LV_ALIGN_TOP_LEFT, 0, idx*35 );
+
+    idx++;
+  }
+
+  // buttons: DELETE & Cancel
+  lv_obj_t * btnOk = lv_button_create( containerBakesRemoval );
+  lv_obj_t * btnCancel = lv_button_create( containerBakesRemoval );
+  static lv_style_t styleBtn;
+
+  lv_style_init( &styleBtn );
+  lv_style_set_width( &styleBtn, 170 );
+  lv_style_set_height( &styleBtn, 50 );
+  lv_style_set_shadow_width( &styleBtn, 0 );
+  lv_style_set_border_color( &styleBtn, lv_color_hex3(0x000) );
+  lv_style_set_border_opa( &styleBtn, LV_OPA_70 );
+  lv_style_set_border_width( &styleBtn, 2 );
+  lv_obj_add_style( btnOk, &styleBtn, 0 );
+  lv_obj_add_style( btnCancel, &styleBtn, 0 );
+  lv_obj_set_style_bg_color( btnOk, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), 0 );
+  lv_obj_set_style_bg_color( btnCancel, LV_COLOR_MAKE(0x36, 0x43, 0xF4), 0 );
+  lv_obj_align( btnCancel, LV_ALIGN_TOP_LEFT, 0, 234 );
+  lv_obj_align( btnOk, LV_ALIGN_TOP_LEFT, 180, 234 );
+  lv_obj_remove_flag( btnOk, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( btnCancel, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_add_event_cb( btnOk, btnBakesRemovalDeleteEventCb, LV_EVENT_CLICKED, NULL );
+  lv_obj_add_event_cb( btnCancel, btnBakesRemovalCancelEventCb, LV_EVENT_CLICKED, NULL );
+
+  lv_obj_t * labelBtn = lv_label_create( btnOk );
+  lv_label_set_text( labelBtn, "DELETE" );
+  lv_obj_center( labelBtn );
+  labelBtn = lv_label_create( btnCancel );
+  lv_label_set_text( labelBtn, "CANCEL" );
+  lv_obj_center( labelBtn );
+}
+
+static void btnBakesRemovalCancelEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  OTA_LogWrite( "CANCEL_EVENT\n" );
+
+  lv_event_stop_processing( event );
+  lv_obj_delete( containerBakesRemoval );
+  containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+}
+
+static void btnBakesRemovalDeleteEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  if( containerBakesRemoval ) {
+    lv_event_stop_processing( event );
+    lv_obj_delete( containerBakesRemoval );
+    containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+  }
+
+  if( NULL != removeBakesCB ) {
+    removeBakesCB( &bakesToRemoveList[0] );
+  }
+
+  // clear list with bakes indexes
+  for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    bakesToRemoveList[ x ] = 0;
+  }
+}
+
+static void checkboxChangedEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  lv_obj_t * obj = lv_event_get_target_obj( event );
+  // QUIRK: treat pointer as value
+  uint8_t newIdx = (uint8_t)(uint32_t)lv_event_get_user_data( event );
+
+  if( LV_STATE_CHECKED & lv_obj_get_state(obj) ) {
+    // checkbox is checked, add idx to list
+    bool found = false;
+    Serial.printf( "Element to be added to list:%d\n", newIdx );
+
+    for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+      if( 0 == bakesToRemoveList[x] ) {
+        bakesToRemoveList[x] = newIdx;
+        found = true;
+        break;
+      }
+    }
+    if( false == found ) {
+      Serial.println( "Too much elements checked for remove!" );
+      lv_obj_remove_state( obj, LV_STATE_CHECKED );
+      // TODO: display GUI message about BAKES_TO_REMOVE_MAX
+    }
+  } else {
+    // checkbox is unchecked, remove idx from list
+    Serial.printf( "Element to be removed from list:%d\n", newIdx );
+
+    for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+      if( newIdx == bakesToRemoveList[x] ) {
+        bakesToRemoveList[x] = 0;
+        break;
+      }
+    }
   }
 }
 
@@ -722,6 +897,7 @@ static void setContentOptions() {
   lv_obj_set_style_bg_color( tabOptions, lv_palette_lighten(LV_PALETTE_GREY, 1), LV_PART_MAIN );
   lv_obj_set_style_bg_opa( tabOptions, LV_OPA_COVER, 0 );
   lv_obj_set_style_pad_all( tabOptions, 0, LV_PART_MAIN );
+  lv_obj_set_style_width( tabOptions, 0, LV_PART_SCROLLBAR );
   lv_obj_remove_flag( tabOptions, LV_OBJ_FLAG_SCROLL_ELASTIC );
   lv_obj_remove_flag( tabOptions, LV_OBJ_FLAG_SCROLL_MOMENTUM );
 
@@ -1037,6 +1213,12 @@ void GUI_setAdjustTimeCallback( adjustTimeCb func ) {
   }
 }
 
+void GUI_setRemoveBakesFromListCallback( removeBakesCb func ) {
+  if( NULL != func ) {
+    removeBakesCB = func;
+  }
+}
+
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
   if( BUTTONS_MAX_COUNT > btnGroup ) {
     buttonsGroup = btnGroup;
@@ -1177,6 +1359,9 @@ void GUI_setWiFiIcon( bool active ) {
 
 void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   #define OPTION_HEIGHT 60
+  uint32_t i = 1;
+  lv_obj_t * label;
+  lv_obj_t * labelBtn;
 
   // 4 buttons to add/del few minutes to current baking time
   lv_obj_t * widgetOption = lv_button_create( tabOptions );
@@ -1199,7 +1384,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_set_style_shadow_width( btnDel5m, 0, LV_PART_MAIN );
   lv_obj_remove_flag( btnDel5m, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_add_event_cb( btnDel5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-5 );   // use pointer as ordinary value
-  lv_obj_t * labelBtn = lv_label_create( btnDel5m );
+  labelBtn = lv_label_create( btnDel5m );
   lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
   lv_label_set_text( labelBtn, "-5min" );
   lv_obj_center( labelBtn );
@@ -1239,7 +1424,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_align( btnAdd5m, LV_ALIGN_RIGHT_MID, 10, 0 );
 
   if( NULL != options && 0 < cnt ) {
-    for( int x=0; x<cnt; x++ ) {
+    for( int x=0; x<cnt; ++x, i = x+1 ) {
       // clickable option's widget
       widgetOption = lv_button_create( tabOptions );
       lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
@@ -1256,15 +1441,16 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
       lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
 
-      lv_obj_t * label = lv_label_create( widgetOption );
+      label = lv_label_create( widgetOption );
       lv_label_set_text( label, options[x].name );
       lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
       lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
       options[x].btn = lv_button_create( widgetOption );
       lv_obj_set_style_shadow_width( options[x].btn, 0, LV_PART_MAIN );
+      lv_obj_set_style_pad_all( options[x].btn, 10, LV_PART_MAIN );
       lv_obj_remove_flag( options[x].btn, LV_OBJ_FLAG_PRESS_LOCK );
       lv_obj_add_event_cb( options[x].btn, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
-      lv_obj_t * labelBtn = lv_label_create( options[x].btn );
+      labelBtn = lv_label_create( options[x].btn );
       lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
       lv_obj_center( labelBtn );
       lv_obj_align( options[x].btn, LV_ALIGN_RIGHT_MID, 0, 0 );
@@ -1287,6 +1473,38 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
       }
     }
   }
+
+  widgetOption = lv_button_create( tabOptions );
+  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i * OPTION_HEIGHT );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+
+  label = lv_label_create( widgetOption );
+  lv_label_set_text( label, "Select bakes to delete" );
+  lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+  lv_obj_t * btnRemoveBakes = lv_button_create( widgetOption );
+  lv_obj_set_style_shadow_width( btnRemoveBakes, 0, LV_PART_MAIN );
+  lv_obj_set_style_pad_all( btnRemoveBakes, 10, LV_PART_MAIN );
+  lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
+  lv_obj_add_event_cb( btnRemoveBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, NULL );
+  labelBtn = lv_label_create( btnRemoveBakes );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "DoIt" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnRemoveBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
+
 }
 
 void GUI_updateOption( setting_t &option ) {

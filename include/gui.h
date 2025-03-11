@@ -5,9 +5,10 @@
 #include "SPI.h"
 #include "lvgl.h"
 
-#define MINUTE_TO_MILLIS(m)   ((m) * 60 * 1000)
-#define HOUR_TO_MILLIS(h)     ((h) * 60 * 60 * 1000)
-#define MAX_ALLOWED_TIME      ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )   // 100 hours max
+#define BAKES_TO_REMOVE_MAX     5  // how much elements can be removed from bakes list at once
+#define MINUTE_TO_MILLIS(m)     ((m) * 60 * 1000)
+#define HOUR_TO_MILLIS(h)       ((h) * 60 * 60 * 1000)
+#define MAX_ALLOWED_TIME        ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )   // 100 hours max
 
 typedef enum operationButton {
     BUTTONS_START = 1,
@@ -51,6 +52,7 @@ typedef void (* updateTempCb)( uint16_t );
 typedef void (* operationCb)( void );
 typedef void (* bakePickupCb)( uint32_t, bool );
 typedef void (* adjustTimeCb)( int32_t );
+typedef void (* removeBakesCb)( const uint8_t * );
 
 /**
  * Need to be called from main Setup/Init function to run the service
@@ -134,6 +136,12 @@ void GUI_setBakePickupCallback( bakePickupCb func );
  * func         -   callback function
  */
 void GUI_setAdjustTimeCallback( adjustTimeCb func );
+
+/**
+ * Set a callback function that will be called when user click on 'Bakes to remove' option
+ * func             -   callback function
+ */
+void GUI_setRemoveBakesFromListCallback( removeBakesCb func );
 
 /**
  * Set which group of buttons should be shown on the screen

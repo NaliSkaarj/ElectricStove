@@ -140,6 +140,27 @@ static void adjustTime( int32_t time ) {
   }
 }
 
+static void removeBakes( const uint8_t * list ) {
+  uint8_t arr[ BAKES_TO_REMOVE_MAX ] = { 0 };
+  uint32_t idx = 0;
+
+  for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    if( 0 < list[x] ) {
+      arr[idx] = list[x] - 1; // arr have elements counted from 0
+      idx++;
+    }
+  }
+
+  if( CONF_removeBakes( arr, idx ) ) {
+    if( bakeNames ) {
+      free( bakeNames );
+      bakeCount = 0;
+    }
+    CONF_getBakeNames( &bakeNames, &bakeCount );
+    GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
+  }
+}
+
 static void myTimerCallback( xTimerHandle pxTimer ) 
 {
   // GUI_SetTabActive( 1 );
@@ -176,6 +197,7 @@ void setup() {
   GUI_setPauseCallback( heatingPause );   // PAUSE heating was clicked
   GUI_setBakePickupCallback( bakePickup );
   GUI_setAdjustTimeCallback( adjustTime );
+  GUI_setRemoveBakesFromListCallback( removeBakes );
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
