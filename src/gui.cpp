@@ -888,6 +888,7 @@ static void setContentList( char *nameList, uint32_t nameLength, uint32_t nameCo
       /*Add buttons to the list*/
       snprintf( buffer, nameLength, "%d: %s", (x+1), (nameList + nameLength * x) );
       btn = lv_list_add_button( bakeList, LV_SYMBOL_RIGHT, buffer );
+      lv_obj_remove_flag( btn, LV_OBJ_FLAG_PRESS_LOCK );
       lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_SHORT_CLICKED, (void *)x );  // use pointer as ordinary value
       lv_obj_add_event_cb( btn, btnBakeSelectEventCb, LV_EVENT_LONG_PRESSED, (void *)x );   // use pointer as ordinary value
     }
