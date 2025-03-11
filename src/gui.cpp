@@ -195,7 +195,8 @@ static void btnOkEventCb( lv_event_t * event ) {
   // manual settings remove previously selected bake name
   lv_label_set_text( labelBakeName, defaultBakeName );
 
-  lv_obj_del( containerRoller );
+  lv_obj_delete( containerRoller );
+  containerRoller = NULL;  // LVGL bug? pointer is not NULL here
 }
 
 static void btnCancelEventCb( lv_event_t * event ) {
@@ -205,7 +206,8 @@ static void btnCancelEventCb( lv_event_t * event ) {
   }
 
   OTA_LogWrite( "CANCEL_EVENT\n" );
-  lv_obj_del( containerRoller );
+  lv_obj_delete( containerRoller );
+  containerRoller = NULL;  // LVGL bug? pointer is not NULL here
 }
 
 static void btnStartEventCb( lv_event_t * event ) {
@@ -616,6 +618,7 @@ static void rollerCreate( roller_t rType ) {
 static void createOperatingButtons() {
   if( NULL != containerButtons ) {
     lv_obj_delete( containerButtons );
+    containerButtons = NULL;  // LVGL bug? pointer is not NULL here
   }
   containerButtons = lv_obj_create( tabHome );
   lv_obj_remove_style_all( containerButtons );
@@ -1282,6 +1285,7 @@ SPIClass * GUI_getSPIinstance() {
 
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
   lv_obj_delete( bakeList );
+  bakeList = NULL;  // LVGL bug? pointer is not NULL here
   setContentList( nameList, nameLength, nameCount );
 }
 
