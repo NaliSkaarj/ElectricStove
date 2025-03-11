@@ -81,6 +81,14 @@ uint32_t CONF_getBakeTime( uint32_t idx, uint32_t step );
 char * CONF_getBakeName( uint32_t idx );
 
 /**
+ * Remove bakes from the list
+ * list[]   - array with indexes (which bake positions on the list should be removed, count from 0)
+ * 
+ * return   - true if bakes found on the list and removed
+ */
+bool CONF_removeBakes( uint8_t list[], uint32_t count );
+
+/**
  * Read bake list from file
  */
 void CONF_reloadBakeFile();

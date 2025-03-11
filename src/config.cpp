@@ -17,6 +17,9 @@ static bake_t * bakeList = NULL;          //dynamically allocated buffer
 static uint32_t bakesCount = 0;
 static JsonDocument doc;
 
+/**
+ * Set few bake positions and save them to file on SDCARD
+ */
 static void setBakeExample() {
   doc["count"] = 2;
 
@@ -176,6 +179,34 @@ char * CONF_getBakeName( uint32_t idx ) {
     return 0;
   }
   return bakeList[ idx ].name;
+}
+
+bool CONF_removeBakes( uint8_t list[], uint32_t count ) {
+  bool retVal = false;
+
+  if( 0 == count ) {
+    return false;
+  }
+
+  for( int x=0; x<count; x++ ) {
+    bakeList[ list[x] ].stepCount = 0;    // use stepCount as marker (mark this element as not active)
+  }
+
+  // move last elements to previously removed places
+  for( int x=0; x<bakesCount; x++ ) {
+    if( 0 == bakeList[x].stepCount ) {  // found empty slot
+      for( int src=x, dst=x+1; dst<bakesCount; src++, dst++ ) {
+        memcpy( &bakeList[src], &bakeList[dst], sizeof( bake_t ) );
+      }
+      bakesCount--;
+      // mark last element as not active
+      bakeList[ bakesCount ].stepCount = 0;
+      retVal = true;
+      x--; // don't skip 'next first' element after movement of the rest
+    }
+  }
+
+  return retVal;
 }
 
 void CONF_reloadBakeFile() {
