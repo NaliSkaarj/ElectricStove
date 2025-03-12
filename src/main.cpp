@@ -144,6 +144,11 @@ static void removeBakes( const uint8_t * list ) {
   uint8_t arr[ BAKES_TO_REMOVE_MAX ] = { 0 };
   uint32_t idx = 0;
 
+  if( NULL == list ) {
+    Serial.println( "Remove bakes: NULL pointer error" );
+    return;
+  }
+
   for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
     if( 0 < list[x] ) {
       arr[idx] = list[x] - 1; // arr have elements counted from 0
@@ -152,6 +157,34 @@ static void removeBakes( const uint8_t * list ) {
   }
 
   if( CONF_removeBakes( arr, idx ) ) {
+    if( bakeNames ) {
+      free( bakeNames );
+      bakeCount = 0;
+    }
+    CONF_getBakeNames( &bakeNames, &bakeCount );
+    GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
+  }
+}
+
+static void swapBakes( const uint8_t * list ) {
+  uint8_t arr[ 2 ] = { 0 };
+
+  if( NULL == list ) {
+    Serial.println( "Swap bakes: NULL pointer error" );
+    return;
+  }
+
+  // arr have elements counted from 0
+  if( 0 < list[0] && bakeCount >= list[0]
+   && 0 < list[1] && bakeCount >= list[1] ) {
+    arr[0] = list[0] - 1;
+    arr[1] = list[1] - 1;
+  } else {
+    Serial.println( "Swap bakes: two indexes required" );
+    return;
+  }
+
+  if( CONF_swapBakes( arr ) ) {
     if( bakeNames ) {
       free( bakeNames );
       bakeCount = 0;
@@ -198,6 +231,7 @@ void setup() {
   GUI_setBakePickupCallback( bakePickup );
   GUI_setAdjustTimeCallback( adjustTime );
   GUI_setRemoveBakesFromListCallback( removeBakes );
+  GUI_setSwapBakesOnListCallback( swapBakes );
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
