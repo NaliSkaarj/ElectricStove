@@ -8,6 +8,7 @@
 #define TERMOMETER_BAR_MAX    115
 
 typedef enum rollerType { ROLLER_TIME = 1, ROLLER_TEMP } roller_t;
+typedef enum bakeOperationType { BAKE_NONE = 0, BAKE_REMOVE, BAKE_SWAP } bakeOperation_t;
 
 static lv_obj_t * tabView;    // main container for 3 tabs
 static lv_style_t styleTabs;  // has impact on tabs icons size
@@ -46,14 +47,16 @@ static operationCb heatingPauseCB = NULL;
 static bakePickupCb bakePickupCB = NULL;
 static adjustTimeCb adjustTimeCB = NULL;
 static removeBakesCb removeBakesCB = NULL;
+static swapBakesCb swapBakesCB = NULL;
 static buttonsGroup_t buttonsGroup;
 static uint16_t rollerTemp;
 static uint32_t rollerTime;
 static lv_timer_t * timer_blinkTimeCurrent;
 static lv_timer_t * timer_blinkScreenFrame;
 static lv_timer_t * timer_setDefaultTab;
-uint8_t bakesToRemoveList[ BAKES_TO_REMOVE_MAX ];
+uint8_t bakesToRemoveList[ BAKES_TO_REMOVE_MAX ];   // used for swaping two bakes also
 const char defaultBakeName[] = "Manual operation";
+static bakeOperationType bakeOperation;
 
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
@@ -76,6 +79,7 @@ static void btnOptionAdjustTimeEventCb( lv_event_t * event );
 static void btnOptionRemoveBakesEventCb( lv_event_t * event );
 static void btnBakesRemovalCancelEventCb( lv_event_t * event );
 static void btnBakesRemovalDeleteEventCb( lv_event_t * event );
+static void btnBakesSwapEventCb( lv_event_t * event );
 static void checkboxChangedEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
@@ -353,7 +357,10 @@ static void btnOptionRemoveBakesEventCb( lv_event_t * event ) {
     idx++;
   }
 
-  // buttons: DELETE & Cancel
+  // QUIRK: treat pointer as value
+  bakeOperation_t bo = (bakeOperation_t)(uint32_t)lv_event_get_user_data( event );
+
+  // buttons: DELETE/SWAP & Cancel
   lv_obj_t * btnOk = lv_button_create( containerBakesRemoval );
   lv_obj_t * btnCancel = lv_button_create( containerBakesRemoval );
   static lv_style_t styleBtn;
@@ -373,11 +380,23 @@ static void btnOptionRemoveBakesEventCb( lv_event_t * event ) {
   lv_obj_align( btnOk, LV_ALIGN_TOP_LEFT, 180, 234 );
   lv_obj_remove_flag( btnOk, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( btnCancel, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnOk, btnBakesRemovalDeleteEventCb, LV_EVENT_CLICKED, NULL );
   lv_obj_add_event_cb( btnCancel, btnBakesRemovalCancelEventCb, LV_EVENT_CLICKED, NULL );
+  if( BAKE_REMOVE == bo ) {
+    bakeOperation = BAKE_REMOVE;
+    lv_obj_add_event_cb( btnOk, btnBakesRemovalDeleteEventCb, LV_EVENT_CLICKED, NULL );
+  } else if( BAKE_SWAP == bo ) {
+    bakeOperation = BAKE_SWAP;
+    lv_obj_add_event_cb( btnOk, btnBakesSwapEventCb, LV_EVENT_CLICKED, NULL );
+  } else {
+    bakeOperation = BAKE_NONE;
+  }
 
   lv_obj_t * labelBtn = lv_label_create( btnOk );
-  lv_label_set_text( labelBtn, "DELETE" );
+  if( BAKE_REMOVE == bo ) {
+    lv_label_set_text( labelBtn, "DELETE" );
+  } else if( BAKE_SWAP == bo ) {
+    lv_label_set_text( labelBtn, "SWAP" );
+  }
   lv_obj_center( labelBtn );
   labelBtn = lv_label_create( btnCancel );
   lv_label_set_text( labelBtn, "CANCEL" );
@@ -419,6 +438,31 @@ static void btnBakesRemovalDeleteEventCb( lv_event_t * event ) {
   }
 }
 
+static void btnBakesSwapEventCb( lv_event_t * event ) {
+  if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
+    BUZZ_Add( 80 );
+    touchEvent = false;
+  }
+
+  if( containerBakesRemoval ) {
+    lv_event_stop_processing( event );
+    lv_obj_delete( containerBakesRemoval );
+    containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+  }
+
+  if( NULL != swapBakesCB ) {
+    swapBakesCB( &bakesToRemoveList[0] );
+  }
+
+  // clear list with bakes indexes
+  for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    bakesToRemoveList[ x ] = 0;
+  }
+}
+
+/**
+ * one function for handling removal and swaping
+ */
 static void checkboxChangedEventCb( lv_event_t * event ) {
   if( touchEvent ) {  // buzz only on user events (exclude SW triggered events)
     BUZZ_Add( 80 );
@@ -428,20 +472,25 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
   lv_obj_t * obj = lv_event_get_target_obj( event );
   // QUIRK: treat pointer as value
   uint8_t newIdx = (uint8_t)(uint32_t)lv_event_get_user_data( event );
+  uint8_t maxCheckedBakes = BAKES_TO_REMOVE_MAX;
+
+  if( BAKE_SWAP == bakeOperation ) {
+    maxCheckedBakes = 2;
+  }
 
   if( LV_STATE_CHECKED & lv_obj_get_state(obj) ) {
     // checkbox is checked, add idx to list
     bool found = false;
     Serial.printf( "Element to be added to list:%d\n", newIdx );
 
-    for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    for( int x=0; x<maxCheckedBakes; x++ ) {
       if( 0 == bakesToRemoveList[x] ) {
         bakesToRemoveList[x] = newIdx;
         found = true;
         break;
       }
     }
-    if( false == found ) {
+    if( false == found && BAKE_REMOVE == bakeOperation ) {
       Serial.println( "Too much elements checked for remove!" );
       lv_obj_remove_state( obj, LV_STATE_CHECKED );
       // TODO: display GUI message about BAKES_TO_REMOVE_MAX
@@ -450,7 +499,7 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
     // checkbox is unchecked, remove idx from list
     Serial.printf( "Element to be removed from list:%d\n", newIdx );
 
-    for( int x=0; x<BAKES_TO_REMOVE_MAX; x++ ) {
+    for( int x=0; x<maxCheckedBakes; x++ ) {
       if( newIdx == bakesToRemoveList[x] ) {
         bakesToRemoveList[x] = 0;
         break;
@@ -1223,6 +1272,12 @@ void GUI_setRemoveBakesFromListCallback( removeBakesCb func ) {
   }
 }
 
+void GUI_setSwapBakesOnListCallback( swapBakesCb func ) {
+  if( NULL != func ) {
+    swapBakesCB = func;
+  }
+}
+
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
   if( BUTTONS_MAX_COUNT > btnGroup ) {
     buttonsGroup = btnGroup;
@@ -1368,7 +1423,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_t * label;
   lv_obj_t * labelBtn;
 
-  // 4 buttons to add/del few minutes to current baking time
+  // first static option: 4 buttons to add/del few minutes to current baking time
   lv_obj_t * widgetOption = lv_button_create( tabOptions );
   lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
   lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
@@ -1428,6 +1483,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_center( labelBtn );
   lv_obj_align( btnAdd5m, LV_ALIGN_RIGHT_MID, 10, 0 );
 
+  // dynamically added options
   if( NULL != options && 0 < cnt ) {
     for( int x=0; x<cnt; ++x, i = x+1 ) {
       // clickable option's widget
@@ -1479,6 +1535,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
     }
   }
 
+  // static option: Removing bakes positions
   widgetOption = lv_button_create( tabOptions );
   lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
   lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
@@ -1490,7 +1547,7 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
   lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
   lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i * OPTION_HEIGHT );
+  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
   lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
 
@@ -1503,12 +1560,44 @@ void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
   lv_obj_set_style_pad_all( btnRemoveBakes, 10, LV_PART_MAIN );
   lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_PRESS_LOCK );
   lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
-  lv_obj_add_event_cb( btnRemoveBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, NULL );
+  lv_obj_add_event_cb( btnRemoveBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_REMOVE );
   labelBtn = lv_label_create( btnRemoveBakes );
   lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
   lv_label_set_text( labelBtn, "DoIt" );
   lv_obj_center( labelBtn );
   lv_obj_align( btnRemoveBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
+
+  // static option: swaping place of two bakes positions
+  widgetOption = lv_button_create( tabOptions );
+  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+
+  label = lv_label_create( widgetOption );
+  lv_label_set_text( label, "Swap 2 bake positions" );
+  lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+  lv_obj_t * btnSwapBakes = lv_button_create( widgetOption );
+  lv_obj_set_style_shadow_width( btnSwapBakes, 0, LV_PART_MAIN );
+  lv_obj_set_style_pad_all( btnSwapBakes, 10, LV_PART_MAIN );
+  lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_PRESS_LOCK );
+  lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
+  lv_obj_add_event_cb( btnSwapBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_SWAP );  // use same callback as for removal
+  labelBtn = lv_label_create( btnSwapBakes );
+  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+  lv_label_set_text( labelBtn, "DoIt" );
+  lv_obj_center( labelBtn );
+  lv_obj_align( btnSwapBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
 
 }
 

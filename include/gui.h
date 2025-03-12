@@ -53,6 +53,7 @@ typedef void (* operationCb)( void );
 typedef void (* bakePickupCb)( uint32_t, bool );
 typedef void (* adjustTimeCb)( int32_t );
 typedef void (* removeBakesCb)( const uint8_t * );
+typedef void (* swapBakesCb)( const uint8_t * );
 
 /**
  * Need to be called from main Setup/Init function to run the service
@@ -142,6 +143,12 @@ void GUI_setAdjustTimeCallback( adjustTimeCb func );
  * func             -   callback function
  */
 void GUI_setRemoveBakesFromListCallback( removeBakesCb func );
+
+/**
+ * Set a callback function that will be called when user click on 'Bakes to swap' option
+ * func             -   callback function
+ */
+void GUI_setSwapBakesOnListCallback( swapBakesCb func );
 
 /**
  * Set which group of buttons should be shown on the screen
