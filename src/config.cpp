@@ -184,7 +184,7 @@ char * CONF_getBakeName( uint32_t idx ) {
 bool CONF_removeBakes( uint8_t list[], uint32_t count ) {
   bool retVal = false;
 
-  if( 0 == count ) {
+  if( NULL == list || 0 == count ) {
     return false;
   }
 
@@ -207,6 +207,20 @@ bool CONF_removeBakes( uint8_t list[], uint32_t count ) {
   }
 
   return retVal;
+}
+
+bool CONF_swapBakes( uint8_t list[] ) {
+  bake_t tmpBake;
+
+  if( NULL == list ) {
+    return false;
+  }
+
+  memcpy( &tmpBake, &bakeList[ list[0] ], sizeof( bake_t ) );
+  memcpy( &bakeList[ list[0] ], &bakeList[ list[1] ], sizeof( bake_t ) );
+  memcpy( &bakeList[ list[1] ], &tmpBake, sizeof( bake_t ) );
+
+  return true;
 }
 
 void CONF_reloadBakeFile() {

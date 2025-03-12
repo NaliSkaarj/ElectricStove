@@ -89,6 +89,14 @@ char * CONF_getBakeName( uint32_t idx );
 bool CONF_removeBakes( uint8_t list[], uint32_t count );
 
 /**
+ * Swap two bakes on the list
+ * list[]   - array with indexes (which bake positions on the list should be swapped, count from 0)
+ * 
+ * return   - true if bakes found on the list and swapped
+ */
+bool CONF_swapBakes( uint8_t list[] );
+
+/**
  * Read bake list from file
  */
 void CONF_reloadBakeFile();
