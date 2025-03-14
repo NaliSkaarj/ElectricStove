@@ -3,6 +3,9 @@
 #include "helper.h"
 #include "ArduinoJson.h"
 #include "EEPROM.h"
+#include "esp_err.h"
+#include "esp_spiffs.h"
+#include <sys/stat.h>
 
 #define EEPROM_SIZE     1024  // 1kB from eeprom(flash) used
 
@@ -15,12 +18,20 @@ typedef struct option
 static bool configAvailable = false;
 static bake_t * bakeList = NULL;          //dynamically allocated buffer
 static uint32_t bakesCount = 0;
-static JsonDocument doc;
+static bool spiffsMounted = false;
+static esp_vfs_spiffs_conf_t conf = {
+  .base_path = "/spiffs",
+  .partition_label = NULL,
+  .max_files = 5,
+  .format_if_mount_failed = true
+};
 
 /**
  * Set few bake positions and save them to file on SDCARD
  */
 static void setBakeExample() {
+  JsonDocument doc;
+
   doc["count"] = 2;
 
   doc["data"][0]["name"] = "Wypiek #1";
@@ -41,9 +52,10 @@ static void setBakeExample() {
   SDCARD_writeFile( "/bakes.txt", output.c_str() );
 }
 
-static void loadBakesFromFile() {
+static void loadBakesFromSDCard() {
   uint8_t * buffer = NULL;
   uint32_t rlen;
+  JsonDocument doc;
 
   rlen = SDCARD_getFileContent( BAKE_FILE_NAME, &buffer );
   if( NULL != buffer ) {
@@ -73,13 +85,133 @@ static void loadBakesFromFile() {
   }
 }
 
+static void spiffsMount() {
+  if( spiffsMounted ) {
+    return;
+  }
+
+  // Initialize and mount SPIFFS filesystem
+  esp_err_t ret = esp_vfs_spiffs_register( &conf );
+
+  if ( ESP_OK != ret ) {
+    if ( ESP_FAIL == ret ) {
+      Serial.printf( "CONF(spiffsMount): Failed to mount filesystem\n" );
+    } else if ( ESP_ERR_NOT_FOUND == ret ) {
+      Serial.printf( "CONF(spiffsMount): Failed to find SPIFFS partition\n" );
+    } else {
+      Serial.printf( "CONF(spiffsMount): Failed to initialize SPIFFS (%s)\n", esp_err_to_name(ret) );
+    }
+    return;
+  }
+
+  size_t total = 0, used = 0;
+  ret = esp_spiffs_info( conf.partition_label, &total, &used );
+  if ( ESP_OK != ret ) {
+    Serial.printf( "CONF(spiffsMount): Failed to get SPIFFS partition information (%s). Formatting...\n", esp_err_to_name(ret) );
+    esp_spiffs_format( conf.partition_label );
+    return;
+  } else {
+    Serial.printf( "Partition size: total: %d, used: %d\n", total, used );
+  }
+
+  // Check consistency of reported partition size info
+  if ( used > total ) {
+    Serial.printf( "Number of used bytes cannot be larger than total. Performing SPIFFS_check()...\n" );
+    ret = esp_spiffs_check( conf.partition_label );
+    if ( ESP_OK != ret ) {
+      Serial.printf( "CONF(spiffsMount): SPIFFS_check() failed (%s)\n", esp_err_to_name(ret) );
+      return;
+    } else {
+      Serial.printf( "SPIFFS_check() successful\n" );
+    }
+  }
+
+  spiffsMounted = true;
+}
+
+static void spiffsUnmount() {
+  if( !spiffsMounted ) {
+    return;
+  }
+
+  // unmount partition and disable SPIFFS
+  esp_vfs_spiffs_unregister( conf.partition_label );
+  Serial.printf( "SPIFFS partition unmounted\n" );
+
+  spiffsMounted = false;
+}
+
+static void loadBakesFromFlash() {
+  uint32_t fileSize = 0;
+
+  Serial.printf( "Loading bakes from file (flash)...\n" );
+
+  spiffsMount();
+  if( !spiffsMounted ) {
+    return;
+  }
+
+  // Check destination file size
+  struct stat st;
+  if ( 0 != stat( "/spiffs/bakes.txt", &st ) ) {
+    Serial.printf( "File 'bakes.txt' doesn't exist\n" );
+    return;
+  }
+  fileSize = (uint32_t)st.st_size;
+
+  char * buff;
+  buff = (char *)malloc( fileSize );
+
+  if( NULL == buff ) {
+    Serial.printf( "CONF(loadBakesFromFlash) Malloc failed for buff\n" );
+    return;
+  }
+
+  FILE * f = fopen( "/spiffs/bakes.txt", "r" );
+  if ( NULL == f ) {
+    Serial.printf( "CONF(loadBakesFromFlash) Failed to open file for reading\n" );
+    free( buff );
+    return;
+  }
+
+  uint32_t readSize;
+  readSize = (uint32_t)fread( buff, sizeof(char), fileSize, f );
+  Serial.printf( "fileSize:%d, readSize:%d\n", fileSize, readSize );
+  fclose( f );
+
+  JsonDocument doc;
+
+  deserializeJson( doc, buff );
+  free( buff );
+  bakesCount = doc["count"];
+
+  // allocate memory for bakeList
+  bakeList = (bake_t *)malloc( sizeof( bake_t ) * bakesCount );
+  if( NULL == bakeList ) {
+    Serial.printf( "CONF(loadBakesFromFlash) Malloc failed for bakeList\n" );
+    return;
+  }
+
+  for( int i = 0; i < bakesCount; i++ ) {
+    strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof( bakeList[i].name ) );
+    bakeList[i].stepCount = doc["data"][i]["stepCount"];
+    for( int s = 0; s < bakeList[i].stepCount; s++ ) {
+      bakeList[i].step[s].temp = doc["data"][i]["step"][s]["temp"];
+      bakeList[i].step[s].time = doc["data"][i]["step"][s]["time"];
+    }
+  }
+
+  spiffsUnmount();
+}
+
 void CONF_Init( SPIClass * spi ) {
   SDCARD_Setup( spi );
 
   configAvailable = true;
 
   // setBakeExample();
-  loadBakesFromFile();
+  loadBakesFromFlash();
+  // loadBakesFromSDCard();
 }
 
 int CONF_getOptionInt( int32_t option ) {
@@ -229,6 +361,44 @@ void CONF_reloadBakeFile() {
     bakesCount = 0;
     free( bakeList );
 
-    loadBakesFromFile();
+    loadBakesFromSDCard();
   }
+}
+
+void CONF_storeBakeList() {
+  spiffsMount();
+
+  if( !spiffsMounted ) {
+    return;
+  }
+
+  JsonDocument doc;
+
+  // prepare file content
+  doc["count"] = bakesCount;
+  for( int x=0; x<bakesCount; x++ ) {
+    doc["data"][x]["name"] = bakeList[x].name;
+    doc["data"][x]["stepCount"] = bakeList[x].stepCount;
+    for( int y=0; y<bakeList[x].stepCount; y++ ) {
+      doc["data"][x]["step"][y]["temp"] = bakeList[x].step[y].temp;
+      doc["data"][x]["step"][y]["time"] = bakeList[x].step[y].time;
+    }
+  }
+
+  String output;
+  serializeJson( doc, output );
+  Serial.printf( "Data to be saved: %s\n", output.c_str() );
+
+  // save file to partition
+  Serial.printf( "Opening file...\n" );
+  FILE * f = fopen( "/spiffs/bakes.txt", "w" );
+  if ( NULL == f ) {
+    Serial.printf( "CONF(storeBakeList): Failed to open file for writing\n" );
+    return;
+  }
+  fprintf( f, "%s", output.c_str() );
+  fclose( f );
+  Serial.printf( "File written\n" );
+
+  spiffsUnmount();
 }

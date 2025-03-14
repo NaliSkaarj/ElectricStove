@@ -99,6 +99,11 @@ bool CONF_swapBakes( uint8_t list[] );
 /**
  * Read bake list from file
  */
-void CONF_reloadBakeFile();
+void CONF_reloadBakeFile( void );
+
+/**
+ * Save bake list as file on spiffs partition
+ */
+void CONF_storeBakeList( void );
 
 #endif  // _CONFIG_H_

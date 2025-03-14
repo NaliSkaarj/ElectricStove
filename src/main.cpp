@@ -123,6 +123,7 @@ static void storeSettings() {
   CONF_setOptionBool( (int32_t)OPTION_BUZZER, settings[ OPTION_BUZZER ].currentValue.bValue );
   CONF_setOptionBool( (int32_t)OPTION_OTA, settings[ OPTION_OTA ].currentValue.bValue );
   Serial.printf( "Saved options:\nOPTION_BUZZER: %d\nOPTION_OTA: %d\n", settings[ OPTION_BUZZER ].currentValue.bValue, settings[ OPTION_OTA ].currentValue.bValue );
+  CONF_storeBakeList();
 }
 
 static void adjustTime( int32_t time ) {
