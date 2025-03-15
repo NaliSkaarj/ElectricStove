@@ -55,6 +55,8 @@ static void setBakeExample() {
 static void loadBakesFromSDCard() {
   uint8_t * buffer = NULL;
   uint32_t rlen;
+  bake_t * tmpBakeList;
+  uint32_t tmpBakesCount;
   JsonDocument doc;
 
   rlen = SDCARD_getFileContent( BAKE_FILE_NAME, &buffer );
@@ -63,25 +65,42 @@ static void loadBakesFromSDCard() {
     // Serial.printf( "buffer[%d]: %s\n", rlen, buffer );
 
     deserializeJson( doc, buffer );
-    bakesCount = doc["count"];
+    tmpBakesCount = doc["count"];
 
-    // allocate memory for bakeList
-    bakeList = (bake_t *)malloc( sizeof( bake_t ) * bakesCount );
-    if( NULL == bakeList ) {
+    if( 0 < tmpBakesCount ) {
+      Serial.printf( "%d new positions will be added to current bake list\n", tmpBakesCount );
+      tmpBakesCount += bakesCount;
+    } else {
+      Serial.println( "File doesn't contain proper data!" );
       free( buffer );
       return;
     }
 
-    for( int i = 0; i < bakesCount; i++ ) {
-      strlcpy( bakeList[i].name, doc["data"][i]["name"], sizeof( bakeList[i].name ) );
-      bakeList[i].stepCount = doc["data"][i]["stepCount"];
-      for( int s = 0; s < bakeList[i].stepCount; s++ ) {
-        bakeList[i].step[s].temp = doc["data"][i]["step"][s]["temp"];
-        bakeList[i].step[s].time = doc["data"][i]["step"][s]["time"];
+    // allocate memory for tmpBakeList (including size of current bakeList)
+    tmpBakeList = (bake_t *)malloc( sizeof( bake_t ) * tmpBakesCount );
+    if( NULL == tmpBakeList ) {
+      Serial.println( "CONF(loadBakesFromSDCard): malloc failed!" );
+      free( buffer );
+      return;
+    }
+
+    // copy old list positions to the newly created list
+    memcpy( tmpBakeList, bakeList, sizeof( bake_t ) * bakesCount );
+
+    // add new positions at the end of new list
+    for( int i = bakesCount, x = 0; i < tmpBakesCount; i++, x++ ) {
+      strlcpy( tmpBakeList[i].name, doc["data"][x]["name"], sizeof( tmpBakeList[i].name ) );
+      tmpBakeList[i].stepCount = doc["data"][x]["stepCount"];
+      for( int s = 0; s < tmpBakeList[i].stepCount; s++ ) {
+        tmpBakeList[i].step[s].temp = doc["data"][x]["step"][s]["temp"];
+        tmpBakeList[i].step[s].time = doc["data"][x]["step"][s]["time"];
       }
     }
 
     free( buffer );
+    free( bakeList );       // delete old bake list
+    bakeList = tmpBakeList; // remember new list
+    bakesCount = tmpBakesCount;
   }
 }
 
@@ -355,13 +374,12 @@ bool CONF_swapBakes( uint8_t list[] ) {
   return true;
 }
 
-void CONF_reloadBakeFile() {
+void CONF_addBakesFromFile( void ) {
   if( SDCARD_Reinit() ) {
-    // clear old data
-    bakesCount = 0;
-    free( bakeList );
-
     loadBakesFromSDCard();
+    SDCARD_Eject();
+  } else {
+    Serial.println( "CONF(addBakesFromFile): SDCarc initialization failed" );
   }
 }
 

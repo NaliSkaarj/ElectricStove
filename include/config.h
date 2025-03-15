@@ -6,7 +6,7 @@
 
 // #define BAKES_COUNT       20
 #define BAKE_NAME_LENGTH    64
-#define BAKE_FILE_NAME      "/bakes1.txt"
+#define BAKE_FILE_NAME      "/bakes.txt"
 #define BAKE_MAX_STEPS      10    // how much steps can be in one 'bakes curve'
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
@@ -97,9 +97,9 @@ bool CONF_removeBakes( uint8_t list[], uint32_t count );
 bool CONF_swapBakes( uint8_t list[] );
 
 /**
- * Read bake list from file
+ * Add bakes from file to current list
  */
-void CONF_reloadBakeFile( void );
+void CONF_addBakesFromFile( void );
 
 /**
  * Save bake list as file on spiffs partition

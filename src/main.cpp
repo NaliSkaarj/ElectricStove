@@ -19,7 +19,7 @@ static uint32_t bakeIdx;
 static setting_t settings[] = {     // preserve order according to optionType enum
   { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
   { "OTA activation", OPT_VAL_BOOL, 1, NULL },
-  { "Reload Bakes file", OPT_VAL_TRIGGER, 0, NULL },
+  { "Add bakes from file", OPT_VAL_TRIGGER, 0, NULL },
   { "Store settings", OPT_VAL_TRIGGER, 0, NULL },
 };
 
@@ -110,11 +110,12 @@ static void otaActivation() {
   // GUI_SetTabActive( 0 );
 }
 
-static void bakesReload() {
+static void addBakes() {
   Serial.println( "Reloading Bakes file..." );
-  CONF_reloadBakeFile();
+  CONF_addBakesFromFile();
   free( bakeNames );
   CONF_getBakeNames( &bakeNames, &bakeCount );
+  Serial.printf( "new bakeCount: %d", bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
   GUI_SetTabActive( 1 );
 }
@@ -251,7 +252,7 @@ void setup() {
   // setup GUI options callbacks
   settings[ OPTION_BUZZER ].optionCallback = buzzerActivation;
   settings[ OPTION_OTA ].optionCallback = otaActivation;
-  settings[ OPTION_BAKES_RELOAD ].optionCallback = bakesReload;
+  settings[ OPTION_BAKES_ADD ].optionCallback = addBakes;
   settings[ OPTION_SAVE ].optionCallback = storeSettings;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
