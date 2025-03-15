@@ -7,6 +7,7 @@
 
 void SDCARD_Setup( SPIClass * spi );
 bool SDCARD_Reinit();
+void SDCARD_Eject();
 void SDCARD_log();
 void SDCARD_list();
 

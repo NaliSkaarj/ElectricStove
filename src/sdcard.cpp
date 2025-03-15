@@ -135,6 +135,10 @@ bool SDCARD_Reinit() {
   return cardAvailable;
 }
 
+void SDCARD_Eject() {
+  SD.end();
+}
+
 void SDCARD_log() {
   if( !cardAvailable ) {
     return;
