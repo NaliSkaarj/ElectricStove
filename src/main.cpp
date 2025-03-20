@@ -96,15 +96,14 @@ static void buzzerActivation() {
   // GUI_SetTabActive( 0 );
 }
 
-static void otaActivation() {
+static void otaToggleState() {
   if( true == settings[ OPTION_OTA ].currentValue.bValue ) {
-    OTA_Off();
     settings[ OPTION_OTA ].currentValue.bValue = false;
   } else {
-    OTA_On();
     settings[ OPTION_OTA ].currentValue.bValue = true;
   }
 
+  OTA_Activate( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_OTA ] );
   // GUI_SetTabActive( 0 );
@@ -210,6 +209,14 @@ static void heatingDone( void ) {
   heaterStateRequested = STATE_STOP_REQUESTED;
 }
 
+static void otaStateChanged( bool otaState ) {
+  Serial.printf( "OTA changed state to: %d\n", (uint32_t)otaState );
+  settings[ OPTION_OTA ].currentValue.bValue = otaState;
+  // update GUI icons
+  GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
+  GUI_updateOption( settings[ OPTION_OTA ] );
+}
+
 size_t getArduinoLoopTaskStackSize(void) {
   return (10 * 1024);
 }
@@ -217,7 +224,7 @@ size_t getArduinoLoopTaskStackSize(void) {
 void setup() {
   Serial.begin( 115200 );
 
-  OTA_Setup();
+  OTA_Init();
   BUZZ_Init();
   GUI_Init();
   HEATER_Init( GUI_getSPIinstance() );
@@ -235,6 +242,8 @@ void setup() {
   GUI_setRemoveBakesFromListCallback( removeBakes );
   GUI_setSwapBakesOnListCallback( swapBakes );
 
+  OTA_setOtaActiveCallback( otaStateChanged );
+
   CONF_getBakeNames( &bakeNames, &bakeCount );
   GUI_populateBakeListNames( (char *)bakeNames, BAKE_NAME_LENGTH, bakeCount );
 
@@ -242,16 +251,12 @@ void setup() {
   settings[ OPTION_OTA ].currentValue.bValue = CONF_getOptionBool( (int32_t)OPTION_OTA );
   BUZZ_Activate( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
-  if( true == settings[ OPTION_OTA ].currentValue.bValue ) {
-    OTA_On();
-  } else {
-    OTA_Off();
-  }
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
+  OTA_Activate( settings[ OPTION_OTA ].currentValue.bValue );
 
   // setup GUI options callbacks
   settings[ OPTION_BUZZER ].optionCallback = buzzerActivation;
-  settings[ OPTION_OTA ].optionCallback = otaActivation;
+  settings[ OPTION_OTA ].optionCallback = otaToggleState;
   settings[ OPTION_BAKES_ADD ].optionCallback = addBakes;
   settings[ OPTION_SAVE ].optionCallback = storeSettings;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
@@ -264,7 +269,6 @@ void setup() {
 }
 
 void loop() {
-  OTA_Handle();
   currentTime = millis();
 
   // handle stuff every 10 miliseconds

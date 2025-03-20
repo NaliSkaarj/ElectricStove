@@ -3,21 +3,133 @@
 #include <ArduinoOTA.h>
 #include "credentials.h"
 
+static TaskHandle_t       taskHandle = NULL;
+static StaticTask_t       taskTCB;
+static StackType_t        taskStack[ OTA_STACK_SIZE ];
+
 WiFiServer server( PORT ); // server port to listen on
 WiFiClient client;
 bool initialized = false;
+bool otaOnRequested = false;
+bool otaOffRequested = false;
+static otaActiveCb otaActiveCB = NULL;
 
-void OTA_LogWrite( const char *buf ) {
-  if ( client && client.connected() ) {
-    client.write( buf, strlen(buf) );
+static void otaOn() {
+  uint8_t tryAgain = 3;
+  ArduinoOTA.setHostname( OTA_HOST_NAME );
+  Serial.println( "OTA activating..." );
+  WiFi.mode( WIFI_STA );
+  WiFi.begin( wifi_SSID, wifi_PASS );
+  initialized = false;
+  while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
+    Serial.println( "WiFi connection Failed! Retrying..." );
+    tryAgain--;
+    if( 0 == tryAgain ) { 
+      Serial.println( "OTA(On): Couldn't connect to WiFi." );
+      return;   // no WiFi == no OTA
+    }
+    vTaskDelay( 3000 / portTICK_PERIOD_MS );
+  }
+
+  initialized = true;
+
+  ArduinoOTA.begin();
+
+  server.begin();
+  server.setNoDelay( true );
+
+  Serial.println( "OTA ready!" );
+  Serial.print( "IP address: " );
+  Serial.println( WiFi.localIP() );
+}
+
+static void otaOff() {
+  if ( client ) {
+    client.stop();
+  }
+
+  server.end();
+  ArduinoOTA.end();
+  Serial.println( "WiFi disconnected. OTA disabled." );
+  initialized = false;
+}
+
+static void otaHandle() {
+  if( false == initialized ) {
+    return;
+  }
+
+  ArduinoOTA.handle();
+
+  if ( WiFi.status() == WL_CONNECTED ) {
+    if ( server.hasClient() ) {
+      if ( !client || !client.connected() ) {
+        if ( client ) {
+          client.stop();
+        }
+        client = server.accept();
+        if ( !client ) {
+          Serial.println( "client available broken" );
+        }
+        Serial.print( "New client: " );
+        Serial.println( client.remoteIP() );
+      }
+    }
+    //check clients for data
+    if ( client && client.connected() ) {
+      if ( client.available() ) {
+        //get data from the telnet client and push it to the UART
+        while ( client.available() ) {
+          Serial.write( client.read() );
+        }
+      }
+    } else {
+      if ( client ) {
+        client.stop();
+      }
+    }
+    //check UART for data
+    if ( Serial.available() ) {
+      size_t len = Serial.available();
+      uint8_t sbuf[len];
+      Serial.readBytes( sbuf, len );
+      //push UART data to telnet client
+      if ( client && client.connected() ) {
+        client.write( sbuf, len );
+      }
+    }
+  } else {
+    if ( client ) {
+      client.stop();
+      Serial.println( "OTA(handle): WiFi lost! Client droped" );
+    }
   }
 }
 
-void OTA_LogWrite( const int x ) {
-  OTA_LogWrite( ((String)x).c_str() );
+static void vTaskOTA( void * pvParameters ) {
+  while( 1 ) {
+    if( otaOnRequested ) {
+      otaOn();
+      otaOnRequested = false;
+      if( NULL != otaActiveCB ) {
+        otaActiveCB( initialized );
+      }
+    }
+    if( otaOffRequested ) {
+      otaOff();
+      otaOffRequested = false;
+      if( NULL != otaActiveCB ) {
+        otaActiveCB( initialized );
+      }
+    }
+
+    otaHandle();
+
+    vTaskDelay( 100 / portTICK_PERIOD_MS );
+  }
 }
 
-void OTA_Setup() {
+void OTA_Init() {
   // Port defaults to 3232
   // ArduinoOTA.setPort(3232);
  
@@ -61,97 +173,42 @@ void OTA_Setup() {
       }
     });
 
-  OTA_On();
+    taskHandle = xTaskCreateStatic( vTaskOTA, "OTA", OTA_STACK_SIZE, NULL, OTA_TASK_PRIORITY, taskStack, &taskTCB );
+
+    if( NULL == taskHandle ) {
+      Serial.println( "OTA: Task couldn't be created" );
+      return;
+    }  
 }
 
-void OTA_On() {
-  uint8_t tryAgain = 3;
-  ArduinoOTA.setHostname( OTA_HOST_NAME );
-  Serial.println( "OTA activating..." );
-  WiFi.mode( WIFI_STA );
-  WiFi.begin( wifi_SSID, wifi_PASS );
-  initialized = false;
-  while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
-    Serial.println( "WiFi connection Failed! Retrying..." );
-    tryAgain--;
-    if( 0 == tryAgain ) { 
-      Serial.println( "OTA(On): Couldn't connect to WiFi." );
-      return;   // no WiFi == no OTA
-    }
-    delay( 5000 );
+void OTA_Activate( bool activate ) {
+  if( activate ) {
+    otaOnRequested = true;
+  } else {
+    otaOffRequested = true;
   }
-
-  initialized = true;
-
-  ArduinoOTA.begin();
-
-  server.begin();
-  server.setNoDelay( true );
-
-  Serial.println( "OTA ready!" );
-  Serial.print( "IP address: " );
-  Serial.println( WiFi.localIP() );
 }
 
-void OTA_Off() {
-  if ( client ) {
-    client.stop();
+void OTA_setOtaActiveCallback( otaActiveCb func ) {
+  if( NULL != func ) {
+    otaActiveCB = func;
   }
-
-  server.end();
-  ArduinoOTA.end();
-  Serial.println( "WiFi disconnected. OTA disabled." );
-  initialized = false;
 }
 
-void OTA_Handle() {
+void OTA_LogWrite( const char *buf ) {
   if( false == initialized ) {
     return;
   }
 
-  ArduinoOTA.handle();
-
-  if ( WiFi.status() == WL_CONNECTED ) {
-    if ( server.hasClient() ) {
-      if ( !client || !client.connected() ) {
-        if ( client ) {
-          client.stop();
-        }
-        client = server.accept();
-        if ( !client ) {
-          Serial.println( "available broken" );
-        }
-        Serial.print( "New client: " );
-        Serial.println( client.remoteIP() );
-      }
-    }
-    //check clients for data
-    if ( client && client.connected() ) {
-      if ( client.available() ) {
-        //get data from the telnet client and push it to the UART
-        while ( client.available() ) {
-          Serial.write( client.read() );
-        }
-      }
-    } else {
-      if ( client ) {
-        client.stop();
-      }
-    }
-    //check UART for data
-    if ( Serial.available() ) {
-      size_t len = Serial.available();
-      uint8_t sbuf[len];
-      Serial.readBytes( sbuf, len );
-      //push UART data to telnet client
-      if ( client && client.connected() ) {
-        client.write( sbuf, len );
-      }
-    }
-  } else {
-    if ( client ) {
-      client.stop();
-      Serial.println( "WiFi lost! Client droped." );
-    }
+  if ( client && client.connected() ) {
+    client.write( buf, strlen(buf) );
   }
+}
+
+void OTA_LogWrite( const int x ) {
+  if( false == initialized ) {
+    return;
+  }
+
+  OTA_LogWrite( ((String)x).c_str() );
 }

@@ -1,28 +1,29 @@
 #ifndef _OTA_H
 #define _OTA_H
 
-#define PORT 23     // port for telnet connections
-#define OTA_HOST_NAME "ElectricStove"
+#define PORT                23     // port for telnet connections
+#define OTA_HOST_NAME       "ElectricStove"
+#define OTA_STACK_SIZE      2048// number of words, at 1965 OTA OK, at 1964 OTA failing sometimes
+#define OTA_TASK_PRIORITY   2
+
+typedef void (* otaActiveCb)( bool );
 
 /**
  * Need to be called from main Setup/Init function to run the service
  */
-void OTA_Setup();
+void OTA_Init();
 
 /**
- * Need to be called in loop() to run the service
+ * Set a callback function that will be called when OTA change state
+ * func         -   callback function
  */
-void OTA_Handle();
+void OTA_setOtaActiveCallback( otaActiveCb func );
 
 /**
- * Turn on OTA service
+ * Turn on/off OTA service
+ * active       -   whether to activate OTA
  */
-void OTA_On();
-
-/**
- * Turn off OTA service
- */
-void OTA_Off();
+void OTA_Activate( bool active );
 
 /**
  * Send log to client (connected over telnet)
