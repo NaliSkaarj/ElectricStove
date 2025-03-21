@@ -103,6 +103,15 @@ static void otaHandle() {
       client.stop();
       Serial.println( "OTA(handle): WiFi lost! Client droped" );
     }
+
+    server.end();
+    ArduinoOTA.end();
+    Serial.println( "WiFi disconnected. OTA disabled." );
+
+    initialized = false;
+    if( NULL != otaActiveCB ) {
+      otaActiveCB( initialized );
+    }
   }
 }
 
