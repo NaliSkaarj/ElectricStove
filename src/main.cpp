@@ -251,7 +251,7 @@ void setup() {
   settings[ OPTION_OTA ].currentValue.bValue = CONF_getOptionBool( (int32_t)OPTION_OTA );
   BUZZ_Activate( settings[ OPTION_BUZZER ].currentValue.bValue );
   GUI_setSoundIcon( settings[ OPTION_BUZZER ].currentValue.bValue );
-  GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
+  GUI_setWiFiIcon( false ); // show no icon by default, it will change as soon as wifi connect
   OTA_Activate( settings[ OPTION_OTA ].currentValue.bValue );
 
   // setup GUI options callbacks
