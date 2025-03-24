@@ -203,7 +203,7 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   buzzHandleForce = true;
   buzzerHandle( globalTime );  // force activating buzzer (if needed)
 
-  return 0;
+  return highestHash;
 }
 
 unsigned int BUZZ_Add( unsigned long period, unsigned long repeatDelay, int repeat ) {
