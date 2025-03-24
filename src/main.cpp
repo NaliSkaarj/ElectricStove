@@ -104,7 +104,6 @@ static void otaToggleState() {
   }
 
   OTA_Activate( settings[ OPTION_OTA ].currentValue.bValue );
-  GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_OTA ] );
   // GUI_SetTabActive( 0 );
 }
