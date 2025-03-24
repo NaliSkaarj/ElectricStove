@@ -58,6 +58,10 @@ uint8_t bakesToRemoveList[ BAKES_TO_REMOVE_MAX ];   // used for swaping two bake
 const char defaultBakeName[] = "Manual operation";
 static bakeOperationType bakeOperation;
 
+static SemaphoreHandle_t  xSemaphore = NULL;
+static StaticSemaphore_t  xMutexBuffer;
+static uint32_t inEventHandling = 0;
+
 TFT_eSPI tft = TFT_eSPI();
 static lv_color_t buf[LV_HOR_RES_MAX * LV_VER_RES_MAX / 10]; // Declare a buffer for 1/10 screen size
 
@@ -180,7 +184,9 @@ static void btnOkEventCb( lv_event_t * event ) {
     rollerTemp = (uint16_t)(t1 * 100 + t2 * 10 + t3);
 
     if( NULL != tempChangedCB ) {
+      inEventHandling++;
       tempChangedCB( rollerTemp );
+      inEventHandling--;
     }
   }
   else if( ROLLER_TIME == *rType ) {
@@ -192,7 +198,9 @@ static void btnOkEventCb( lv_event_t * event ) {
     rollerTime = HOUR_TO_MILLIS(h1 * 10 + h2) + MINUTE_TO_MILLIS(m1 * 10 + m2);
 
     if( NULL != timeChangedCB ) {
+      inEventHandling++;
       timeChangedCB( rollerTime );
+      inEventHandling--;
     }
   }
 
@@ -223,7 +231,9 @@ static void btnStartEventCb( lv_event_t * event ) {
   OTA_LogWrite( "START_EVENT\n" );
 
   if( NULL != heatingStartCB ) {
+    inEventHandling++;
     heatingStartCB();
+    inEventHandling--;
   }
 }
 
@@ -236,7 +246,9 @@ static void btnStopEventCb( lv_event_t * event ) {
   OTA_LogWrite( "STOP_EVENT\n" );
 
   if( NULL != heatingStopCB ) {
+    inEventHandling++;
     heatingStopCB();
+    inEventHandling--;
   }
 }
 
@@ -249,7 +261,9 @@ static void btnPauseEventCb( lv_event_t * event ) {
   OTA_LogWrite( "PAUSE_EVENT\n" );
 
   if( NULL != heatingPauseCB ) {
+    inEventHandling++;
     heatingPauseCB();
+    inEventHandling--;
   }
 }
 
@@ -264,7 +278,9 @@ static void btnBakeSelectEventCb( lv_event_t * event ) {
   OTA_LogWrite( "BAKE_PICKUP_EVENT\n" );
 
   if( NULL != bakePickupCB ) {
+    inEventHandling++;
     bakePickupCB( (int32_t)lv_event_get_user_data( event ), ( LV_EVENT_LONG_PRESSED == code ) );
+    inEventHandling--;
   }
 }
 
@@ -273,13 +289,15 @@ static void btnOptionEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
-
+  
   setting_t *data = (setting_t *)lv_event_get_user_data( event );
   (void)data;
-
+  
   if( NULL != data ) {
     if( data->optionCallback ) {
+      inEventHandling++;
       data->optionCallback();
+      inEventHandling--;
     }
   }
 }
@@ -289,9 +307,11 @@ static void btnOptionAdjustTimeEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
-
+  
   if( NULL != adjustTimeCB ) {
+    inEventHandling++;
     adjustTimeCB( (int32_t)lv_event_get_user_data( event ) );
+    inEventHandling--;
   }
 }
 
@@ -421,15 +441,17 @@ static void btnBakesRemovalDeleteEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
-
+  
   if( containerBakesRemoval ) {
     lv_event_stop_processing( event );
     lv_obj_delete( containerBakesRemoval );
     containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
   }
-
+  
   if( NULL != removeBakesCB ) {
+    inEventHandling++;
     removeBakesCB( &bakesToRemoveList[0] );
+    inEventHandling--;
   }
 
   // clear list with bakes indexes
@@ -443,15 +465,17 @@ static void btnBakesSwapEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
-
+  
   if( containerBakesRemoval ) {
     lv_event_stop_processing( event );
     lv_obj_delete( containerBakesRemoval );
     containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
   }
-
+  
   if( NULL != swapBakesCB ) {
+    inEventHandling++;
     swapBakesCB( &bakesToRemoveList[0] );
+    inEventHandling--;
   }
 
   // clear list with bakes indexes
@@ -468,21 +492,21 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
     BUZZ_Add( 80 );
     touchEvent = false;
   }
-
+  
   lv_obj_t * obj = lv_event_get_target_obj( event );
   // QUIRK: treat pointer as value
   uint8_t newIdx = (uint8_t)(uint32_t)lv_event_get_user_data( event );
   uint8_t maxCheckedBakes = BAKES_TO_REMOVE_MAX;
-
+  
   if( BAKE_SWAP == bakeOperation ) {
     maxCheckedBakes = 2;
   }
-
+  
   if( LV_STATE_CHECKED & lv_obj_get_state(obj) ) {
     // checkbox is checked, add idx to list
     bool found = false;
     Serial.printf( "Element to be added to list:%d\n", newIdx );
-
+    
     for( int x=0; x<maxCheckedBakes; x++ ) {
       if( 0 == bakesToRemoveList[x] ) {
         bakesToRemoveList[x] = newIdx;
@@ -498,7 +522,7 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
   } else {
     // checkbox is unchecked, remove idx from list
     Serial.printf( "Element to be removed from list:%d\n", newIdx );
-
+    
     for( int x=0; x<maxCheckedBakes; x++ ) {
       if( newIdx == bakesToRemoveList[x] ) {
         bakesToRemoveList[x] = 0;
@@ -1071,7 +1095,9 @@ static void setDefaultTab( lv_timer_t * timer ) {
 }
 
 void GUI_Init() {
-    
+  xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
+  assert( xSemaphore );
+
   uint16_t calData[5] = { 265, 3677, 261, 3552, 1 };  // check branch TouchscreenCalibration for those values
   tft.init();
   tft.setRotation( 3 );
@@ -1104,123 +1130,159 @@ void GUI_Init() {
 }
 
 void GUI_Handle( uint32_t tick_period ) {
-  lv_timer_handler();
-  lv_tick_inc( 10 );
+  if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    lv_timer_handler();
+    lv_tick_inc( 10 );
+    xSemaphoreGive( xSemaphore );
+  }
 }
 
 void GUI_SetTabActive( uint32_t tabNr )
 {
-  if( (0 > tabNr) || (3 <= tabNr) ) {
-    return;
-  }
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( (0 > tabNr) || (3 <= tabNr) ) {
+      if( 0 == inEventHandling ) {
+        xSemaphoreGive( xSemaphore );
+      }
+      return;
+    }
 
-  lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
+    lv_tabview_set_active( tabView, tabNr, LV_ANIM_OFF );
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
+  }
 }
 
 void GUI_SetTargetTemp( uint16_t temp ) {
-  char buff[4];
-  uint16_t t = temp;
-  uint16_t t1, t2, t3;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    char buff[4];
+    uint16_t t = temp;
+    uint16_t t1, t2, t3;
 
-  rollerTemp = t;
+    rollerTemp = t;
 
-  t1 = (uint16_t)(t / 100);
-  t -= ( t1 * 100 );
-  t2 = (uint16_t)(t / 10);
-  t -= ( t2 * 10 );
-  t3 = t;
+    t1 = (uint16_t)(t / 100);
+    t -= ( t1 * 100 );
+    t2 = (uint16_t)(t / 10);
+    t -= ( t2 * 10 );
+    t3 = t;
 
-  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
-  buff[2] = '0' + t3;
-  buff[3] = '\0';
+    buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
+    buff[1] = (( 0 < t2 ) || ( buff[0] != ' ' )) ? '0' + t2 : ' ';  //'0' + t2;
+    buff[2] = '0' + t3;
+    buff[3] = '\0';
 
-  lv_label_set_text( labelTargetTempVal, buff );
+    lv_label_set_text( labelTargetTempVal, buff );
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
+  }
 }
 
 void GUI_SetCurrentTemp( uint16_t temp ) {
-  char buff[4];
-  ///TODO: double code!, duplication in GUI_SetTargetTemp(), can be reduced to one function call. The same regarding time
-  uint16_t t = temp;
-  uint16_t t1, t2, t3;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    char buff[4];
+    ///TODO: double code!, duplication in GUI_SetTargetTemp(), can be reduced to one function call. The same regarding time
+    uint16_t t = temp;
+    uint16_t t1, t2, t3;
 
-  if( 999 < t ) { // no more as 3 digits
-    t = 999;
+    if( 999 < t ) { // no more as 3 digits
+      t = 999;
+    }
+
+    t1 = (uint16_t)(t / 100);
+    t -= ( t1 * 100 );
+    t2 = (uint16_t)(t / 10);
+    t -= ( t2 * 10 );
+    t3 = t;
+
+    buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
+    buff[1] = '0' + t2;
+    buff[2] = '0' + t3;
+    buff[3] = '\0';
+
+    lv_label_set_text( labelCurrentTempVal, buff );
+    // lv_label_set_text( labelCurrentTempVal, "123" );  // used for adjusting label position
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
-
-  t1 = (uint16_t)(t / 100);
-  t -= ( t1 * 100 );
-  t2 = (uint16_t)(t / 10);
-  t -= ( t2 * 10 );
-  t3 = t;
-
-  buff[0] = ( 0 < t1 ? '0' + t1 : ' ' );
-  buff[1] = '0' + t2;
-  buff[2] = '0' + t3;
-  buff[3] = '\0';
-
-  lv_label_set_text( labelCurrentTempVal, buff );
-  // lv_label_set_text( labelCurrentTempVal, "123" );  // used for adjusting label position
 }
 
 void GUI_SetTargetTime( uint32_t time ) {
-  char buff[8];
-  uint32_t t = time;
-  uint32_t h1, h2, m1, m2;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    char buff[8];
+    uint32_t t = time;
+    uint32_t h1, h2, m1, m2;
 
-  if( MAX_ALLOWED_TIME < t ) {
-    t = MAX_ALLOWED_TIME;
+    if( MAX_ALLOWED_TIME < t ) {
+      t = MAX_ALLOWED_TIME;
+    }
+
+    rollerTime = t;
+
+    h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
+    t -= ( h1 * HOUR_TO_MILLIS(10) );
+    h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
+    t -= ( h2 * HOUR_TO_MILLIS(1) );
+    m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
+    t -= ( m1 * MINUTE_TO_MILLIS(10) );
+    m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
+
+    buff[0] = '[';
+    buff[1] = ( 0 < h1 ? '0' + h1 : ' ' );
+    buff[2] = '0' + h2;
+    buff[3] = ':';
+    buff[4] = '0' + m1;
+    buff[5] = '0' + m2;
+    buff[6] = ']';
+    buff[7] = '\0';
+
+    lv_label_set_text( labelTargetTimeVal, buff );
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
-
-  rollerTime = t;
-
-  h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
-  t -= ( h1 * HOUR_TO_MILLIS(10) );
-  h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
-  t -= ( h2 * HOUR_TO_MILLIS(1) );
-  m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
-  t -= ( m1 * MINUTE_TO_MILLIS(10) );
-  m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
-
-  buff[0] = '[';
-  buff[1] = ( 0 < h1 ? '0' + h1 : ' ' );
-  buff[2] = '0' + h2;
-  buff[3] = ':';
-  buff[4] = '0' + m1;
-  buff[5] = '0' + m2;
-  buff[6] = ']';
-  buff[7] = '\0';
-
-  lv_label_set_text( labelTargetTimeVal, buff );
 }
 
 void GUI_SetCurrentTime( uint32_t time ) {
-  char buff[6];
-  uint32_t t = time;
-  uint32_t h1, h2, m1, m2;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    char buff[6];
+    uint32_t t = time;
+    uint32_t h1, h2, m1, m2;
 
-  if( MAX_ALLOWED_TIME < t ) {
-    t = MAX_ALLOWED_TIME;
-  }
+    if( MAX_ALLOWED_TIME < t ) {
+      t = MAX_ALLOWED_TIME;
+    }
 
-  h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
-  t -= ( h1 * HOUR_TO_MILLIS(10) );
-  h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
-  t -= ( h2 * HOUR_TO_MILLIS(1) );
-  m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
-  t -= ( m1 * MINUTE_TO_MILLIS(10) );
-  m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
+    h1 = (uint32_t)(t / HOUR_TO_MILLIS(10));
+    t -= ( h1 * HOUR_TO_MILLIS(10) );
+    h2 = (uint32_t)(t / HOUR_TO_MILLIS(1));
+    t -= ( h2 * HOUR_TO_MILLIS(1) );
+    m1 = (uint32_t)(t / MINUTE_TO_MILLIS(10));
+    t -= ( m1 * MINUTE_TO_MILLIS(10) );
+    m2 = (uint32_t)(t / MINUTE_TO_MILLIS(1));
 
-  buff[0] = ( 0 < h1 ? '0' + h1 : ' ' );
-  buff[1] = '0' + h2;
-  buff[2] = ':';
-  buff[3] = '0' + m1;
-  buff[4] = '0' + m2;
-  buff[5] = '\0';
+    buff[0] = ( 0 < h1 ? '0' + h1 : ' ' );
+    buff[1] = '0' + h2;
+    buff[2] = ':';
+    buff[3] = '0' + m1;
+    buff[4] = '0' + m2;
+    buff[5] = '\0';
 
-  if( NULL != labelCurrentTimeVal ) {
-    lv_label_set_text( labelCurrentTimeVal, buff );
-    // lv_label_set_text( labelCurrentTimeVal, "00:00" );  // used for adjusting label position
+    if( NULL != labelCurrentTimeVal ) {
+      lv_label_set_text( labelCurrentTimeVal, buff );
+      // lv_label_set_text( labelCurrentTimeVal, "00:00" );  // used for adjusting label position
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
@@ -1279,59 +1341,89 @@ void GUI_setSwapBakesOnListCallback( swapBakesCb func ) {
 }
 
 void GUI_setOperationButtons( enum operationButton btnGroup ) {
-  if( BUTTONS_MAX_COUNT > btnGroup ) {
-    buttonsGroup = btnGroup;
-    createOperatingButtons();
-  }
-  else {
-    buttonsGroup = (buttonsGroup_t)0; // wrong enum received
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( BUTTONS_MAX_COUNT > btnGroup ) {
+      buttonsGroup = btnGroup;
+      createOperatingButtons();
+    }
+    else {
+      buttonsGroup = (buttonsGroup_t)0; // wrong enum received
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setTimeTempChangeAllowed( bool active ) {
-  if( active ) {
-    lv_obj_add_event_cb( widgetTime, timeEventCb, LV_EVENT_CLICKED, NULL );
-    lv_obj_add_event_cb( widgetTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
-  }
-  else {
-    lv_obj_remove_event_cb( widgetTime, timeEventCb );
-    lv_obj_remove_event_cb( widgetTemp, tempEventCb );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( active ) {
+      lv_obj_add_event_cb( widgetTime, timeEventCb, LV_EVENT_CLICKED, NULL );
+      lv_obj_add_event_cb( widgetTemp, tempEventCb, LV_EVENT_CLICKED, NULL );
+    }
+    else {
+      lv_obj_remove_event_cb( widgetTime, timeEventCb );
+      lv_obj_remove_event_cb( widgetTemp, tempEventCb );
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setBlinkTimeCurrent( bool active ) {
-  if( NULL == timer_blinkTimeCurrent ) {
-    return;
-  }
-
-  if( NULL != labelCurrentTimeVal ) {
-    if( active ) {
-      lv_timer_resume( timer_blinkTimeCurrent );
-      Serial.println("BLINK_TIME_START");
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL == timer_blinkTimeCurrent ) {
+      if( 0 == inEventHandling ) {
+        xSemaphoreGive( xSemaphore );
+      }
+      return;
     }
-    else {
-      lv_timer_pause( timer_blinkTimeCurrent );
-      // set proper label color here, just in case it's changed when stopping blinking
-      lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
-      Serial.println("BLINK_TIME_STOP");
+
+    if( NULL != labelCurrentTimeVal ) {
+      if( active ) {
+        lv_timer_resume( timer_blinkTimeCurrent );
+        Serial.println("BLINK_TIME_START");
+      }
+      else {
+        lv_timer_pause( timer_blinkTimeCurrent );
+        // set proper label color here, just in case it's changed when stopping blinking
+        lv_obj_set_style_text_color( labelCurrentTimeVal, {0x0,0x0,0x0}, 0 );
+        Serial.println("BLINK_TIME_STOP");
+      }
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
     }
   }
 }
 
 void GUI_setBlinkScreenFrame( bool active ) {
-  if( NULL == timer_blinkScreenFrame ) {
-    return;
-  }
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL == timer_blinkScreenFrame ) {
+      if( 0 == inEventHandling ) {
+        xSemaphoreGive( xSemaphore );
+      }
+      return;
+    }
 
-  if( active ) {
-    lv_timer_resume( timer_blinkScreenFrame );
-    Serial.println("BLINK_FRAME_START");
-  }
-  else {
-    lv_timer_pause( timer_blinkScreenFrame );
-    lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_TRANSP );
-    lv_obj_report_style_change( &styleScreenFrame );
-    Serial.println("BLINK_FRAME_STOP");
+    if( active ) {
+      lv_timer_resume( timer_blinkScreenFrame );
+      Serial.println("BLINK_FRAME_START");
+    }
+    else {
+      lv_timer_pause( timer_blinkScreenFrame );
+      lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_TRANSP );
+      lv_obj_report_style_change( &styleScreenFrame );
+      Serial.println("BLINK_FRAME_STOP");
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
@@ -1340,287 +1432,348 @@ SPIClass * GUI_getSPIinstance() {
 }
 
 void GUI_populateBakeListNames( char *nameList, uint32_t nameLength, uint32_t nameCount ) {
-  lv_obj_delete( bakeList );
-  bakeList = NULL;  // LVGL bug? pointer is not NULL here
-  setContentList( nameList, nameLength, nameCount );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    lv_obj_delete( bakeList );
+    bakeList = NULL;  // LVGL bug? pointer is not NULL here
+    setContentList( nameList, nameLength, nameCount );
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
+  }
 }
 
 void GUI_setTimeBar( uint32_t time ) {
-  if( NULL != progressCircle ) {
-    lv_arc_set_value( progressCircle, time );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL != progressCircle ) {
+      lv_arc_set_value( progressCircle, time );
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setTempBar( int32_t temp ) {
-  int32_t t = temp;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    int32_t t = temp;
 
-  if( TERMOMETER_BAR_MAX < t ) {
-    t = TERMOMETER_BAR_MAX;
-  }
-  if( TERMOMETER_BAR_MIN > t ) {
-    t = TERMOMETER_BAR_MIN;
-  }
+    if( TERMOMETER_BAR_MAX < t ) {
+      t = TERMOMETER_BAR_MAX;
+    }
+    if( TERMOMETER_BAR_MIN > t ) {
+      t = TERMOMETER_BAR_MIN;
+    }
 
-  if( NULL != tempBar ) {
-    lv_bar_set_value( tempBar, t, LV_ANIM_OFF );
+    if( NULL != tempBar ) {
+      lv_bar_set_value( tempBar, t, LV_ANIM_OFF );
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setBakeName( const char * bakeName ) {
-  if( NULL != labelBakeName ) {
-    lv_label_set_text( labelBakeName, bakeName );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL != labelBakeName ) {
+      lv_label_set_text( labelBakeName, bakeName );
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setPowerBar( uint32_t power ) {
-  if( 100 < power ) {
-    power = 100;
-  }
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( 100 < power ) {
+      power = 100;
+    }
 
-  if( NULL != labelPowerBar ) {
-    char txt[5];
-    sprintf( txt, "%u%%", power );
-    lv_label_set_text( labelPowerBar, txt );
-  }
+    if( NULL != labelPowerBar ) {
+      char txt[5];
+      sprintf( txt, "%u%%", power );
+      lv_label_set_text( labelPowerBar, txt );
+    }
 
-  if( NULL != powerBar ) {
-    lv_bar_set_value( powerBar, power, LV_ANIM_OFF );
+    if( NULL != powerBar ) {
+      lv_bar_set_value( powerBar, power, LV_ANIM_OFF );
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
 
 void GUI_setPowerIndicator( bool active ) {
-  if( NULL != powerBar ) {
-    if( active ) {
-      lv_obj_set_style_bg_opa( powerBar, LV_OPA_COVER, LV_PART_INDICATOR );
-    } else {
-      lv_obj_set_style_bg_opa( powerBar, LV_OPA_40, LV_PART_INDICATOR );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL != powerBar ) {
+      if( active ) {
+        lv_obj_set_style_bg_opa( powerBar, LV_OPA_COVER, LV_PART_INDICATOR );
+      } else {
+        lv_obj_set_style_bg_opa( powerBar, LV_OPA_40, LV_PART_INDICATOR );
+      }
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
     }
   }
 }
 
 void GUI_setSoundIcon( bool active ) {
-  if( NULL != labelSoundIcon ) {
-    if( active ) {
-      lv_obj_set_style_text_opa( labelSoundIcon, LV_OPA_COVER, LV_PART_MAIN );
-    } else {
-      lv_obj_set_style_text_opa( labelSoundIcon, LV_OPA_30, LV_PART_MAIN );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL != labelSoundIcon ) {
+      if( active ) {
+        lv_obj_set_style_text_opa( labelSoundIcon, LV_OPA_COVER, LV_PART_MAIN );
+      } else {
+        lv_obj_set_style_text_opa( labelSoundIcon, LV_OPA_30, LV_PART_MAIN );
+      }
     }
-  }}
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
+  }
+}
 
 void GUI_setWiFiIcon( bool active ) {
-  if( NULL != labelWiFiIcon ) {
-    if( active ) {
-      lv_obj_set_style_text_opa( labelWiFiIcon, LV_OPA_COVER, LV_PART_MAIN );
-    } else {
-      lv_obj_set_style_text_opa( labelWiFiIcon, LV_OPA_30, LV_PART_MAIN );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    if( NULL != labelWiFiIcon ) {
+      if( active ) {
+        lv_obj_set_style_text_opa( labelWiFiIcon, LV_OPA_COVER, LV_PART_MAIN );
+      } else {
+        lv_obj_set_style_text_opa( labelWiFiIcon, LV_OPA_30, LV_PART_MAIN );
+      }
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
     }
   }
 }
 
 void GUI_optionsPopulate( setting_t options[], uint32_t cnt ) {
-  #define OPTION_HEIGHT 60
-  uint32_t i = 1;
-  lv_obj_t * label;
-  lv_obj_t * labelBtn;
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    #define OPTION_HEIGHT 60
+    uint32_t i = 1;
+    lv_obj_t * label;
+    lv_obj_t * labelBtn;
 
-  // first static option: 4 buttons to add/del few minutes to current baking time
-  lv_obj_t * widgetOption = lv_button_create( tabOptions );
-  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
-  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
-  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
-  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
-  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
-  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
-  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
-  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, 0 );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+    // first static option: 4 buttons to add/del few minutes to current baking time
+    lv_obj_t * widgetOption = lv_button_create( tabOptions );
+    lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+    lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+    lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+    lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+    lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+    lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+    lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+    lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, 0 );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
 
-  lv_obj_t * btnDel5m = lv_button_create( widgetOption );
-  lv_obj_set_width( btnDel5m, 80 );
-  lv_obj_set_style_shadow_width( btnDel5m, 0, LV_PART_MAIN );
-  lv_obj_remove_flag( btnDel5m, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnDel5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-5 );   // use pointer as ordinary value
-  labelBtn = lv_label_create( btnDel5m );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "-5min" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnDel5m, LV_ALIGN_LEFT_MID, -10, 0 );
+    lv_obj_t * btnDel5m = lv_button_create( widgetOption );
+    lv_obj_set_width( btnDel5m, 80 );
+    lv_obj_set_style_shadow_width( btnDel5m, 0, LV_PART_MAIN );
+    lv_obj_remove_flag( btnDel5m, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_add_event_cb( btnDel5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-5 );   // use pointer as ordinary value
+    labelBtn = lv_label_create( btnDel5m );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "-5min" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnDel5m, LV_ALIGN_LEFT_MID, -10, 0 );
 
-  lv_obj_t * btnDel1m = lv_button_create( widgetOption );
-  lv_obj_set_width( btnDel1m, 80 );
-  lv_obj_set_style_shadow_width( btnDel1m, 0, LV_PART_MAIN );
-  lv_obj_remove_flag( btnDel1m, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnDel1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-1 );   // use pointer as ordinary value
-  labelBtn = lv_label_create( btnDel1m );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "-1min" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnDel1m, LV_ALIGN_LEFT_MID, 80, 0 );
+    lv_obj_t * btnDel1m = lv_button_create( widgetOption );
+    lv_obj_set_width( btnDel1m, 80 );
+    lv_obj_set_style_shadow_width( btnDel1m, 0, LV_PART_MAIN );
+    lv_obj_remove_flag( btnDel1m, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_add_event_cb( btnDel1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)-1 );   // use pointer as ordinary value
+    labelBtn = lv_label_create( btnDel1m );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "-1min" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnDel1m, LV_ALIGN_LEFT_MID, 80, 0 );
 
-  lv_obj_t * btnAdd1m = lv_button_create( widgetOption );
-  lv_obj_set_width( btnAdd1m, 80 );
-  lv_obj_set_style_shadow_width( btnAdd1m, 0, LV_PART_MAIN );
-  lv_obj_remove_flag( btnAdd1m, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnAdd1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)1 );   // use pointer as ordinary value
-  labelBtn = lv_label_create( btnAdd1m );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "+1min" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnAdd1m, LV_ALIGN_RIGHT_MID, -80, 0 );
+    lv_obj_t * btnAdd1m = lv_button_create( widgetOption );
+    lv_obj_set_width( btnAdd1m, 80 );
+    lv_obj_set_style_shadow_width( btnAdd1m, 0, LV_PART_MAIN );
+    lv_obj_remove_flag( btnAdd1m, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_add_event_cb( btnAdd1m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)1 );   // use pointer as ordinary value
+    labelBtn = lv_label_create( btnAdd1m );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "+1min" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnAdd1m, LV_ALIGN_RIGHT_MID, -80, 0 );
 
-  lv_obj_t * btnAdd5m = lv_button_create( widgetOption );
-  lv_obj_set_width( btnAdd5m, 80 );
-  lv_obj_set_style_shadow_width( btnAdd5m, 0, LV_PART_MAIN );
-  lv_obj_remove_flag( btnAdd5m, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_add_event_cb( btnAdd5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)5 );   // use pointer as ordinary value
-  labelBtn = lv_label_create( btnAdd5m );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "+5min" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnAdd5m, LV_ALIGN_RIGHT_MID, 10, 0 );
+    lv_obj_t * btnAdd5m = lv_button_create( widgetOption );
+    lv_obj_set_width( btnAdd5m, 80 );
+    lv_obj_set_style_shadow_width( btnAdd5m, 0, LV_PART_MAIN );
+    lv_obj_remove_flag( btnAdd5m, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_add_event_cb( btnAdd5m, btnOptionAdjustTimeEventCb, LV_EVENT_CLICKED, (void *)5 );   // use pointer as ordinary value
+    labelBtn = lv_label_create( btnAdd5m );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "+5min" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnAdd5m, LV_ALIGN_RIGHT_MID, 10, 0 );
 
-  // dynamically added options
-  if( NULL != options && 0 < cnt ) {
-    for( int x=0; x<cnt; ++x, i = x+1 ) {
-      // clickable option's widget
-      widgetOption = lv_button_create( tabOptions );
-      lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
-      lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-      lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
-      lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
-      lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
-      lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
-      lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
-      lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
-      lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
-      lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-      lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, (x+1) * OPTION_HEIGHT );
-      lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
-      lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+    // dynamically added options
+    if( NULL != options && 0 < cnt ) {
+      for( int x=0; x<cnt; ++x, i = x+1 ) {
+        // clickable option's widget
+        widgetOption = lv_button_create( tabOptions );
+        lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+        lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+        lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+        lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+        lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+        lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+        lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+        lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );// lv_palette_main(LV_PALETTE_BLUE) >> 2196F3
+        lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+        lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+        lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, (x+1) * OPTION_HEIGHT );
+        lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+        lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
 
-      label = lv_label_create( widgetOption );
-      lv_label_set_text( label, options[x].name );
-      lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-      lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
-      options[x].btn = lv_button_create( widgetOption );
-      lv_obj_set_style_shadow_width( options[x].btn, 0, LV_PART_MAIN );
-      lv_obj_set_style_pad_all( options[x].btn, 10, LV_PART_MAIN );
-      lv_obj_remove_flag( options[x].btn, LV_OBJ_FLAG_PRESS_LOCK );
-      lv_obj_add_event_cb( options[x].btn, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
-      labelBtn = lv_label_create( options[x].btn );
-      lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-      lv_obj_center( labelBtn );
-      lv_obj_align( options[x].btn, LV_ALIGN_RIGHT_MID, 0, 0 );
+        label = lv_label_create( widgetOption );
+        lv_label_set_text( label, options[x].name );
+        lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+        lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+        options[x].btn = lv_button_create( widgetOption );
+        lv_obj_set_style_shadow_width( options[x].btn, 0, LV_PART_MAIN );
+        lv_obj_set_style_pad_all( options[x].btn, 10, LV_PART_MAIN );
+        lv_obj_remove_flag( options[x].btn, LV_OBJ_FLAG_PRESS_LOCK );
+        lv_obj_add_event_cb( options[x].btn, btnOptionEventCb, LV_EVENT_CLICKED, &options[x] );
+        labelBtn = lv_label_create( options[x].btn );
+        lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+        lv_obj_center( labelBtn );
+        lv_obj_align( options[x].btn, LV_ALIGN_RIGHT_MID, 0, 0 );
 
-      switch( options[x].valuetype ) {
-        case OPT_VAL_BOOL:
-          if( options[x].currentValue.bValue ) {
-            lv_label_set_text( labelBtn, "On" );
-            lv_obj_set_style_bg_color( options[x].btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
-          } else {
-            lv_label_set_text( labelBtn, "Off" );
-            lv_obj_set_style_bg_color( options[x].btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
-          }
-          break;
-        case OPT_VAL_INT:
-          break;
-        case OPT_VAL_TRIGGER:
-          lv_label_set_text( labelBtn, "DoIt" );
-          break;
+        switch( options[x].valuetype ) {
+          case OPT_VAL_BOOL:
+            if( options[x].currentValue.bValue ) {
+              lv_label_set_text( labelBtn, "On" );
+              lv_obj_set_style_bg_color( options[x].btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
+            } else {
+              lv_label_set_text( labelBtn, "Off" );
+              lv_obj_set_style_bg_color( options[x].btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
+            }
+            break;
+          case OPT_VAL_INT:
+            break;
+          case OPT_VAL_TRIGGER:
+            lv_label_set_text( labelBtn, "DoIt" );
+            break;
+        }
       }
     }
+
+    // static option: Removing bakes positions
+    widgetOption = lv_button_create( tabOptions );
+    lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+    lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+    lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+    lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+    lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+    lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+    lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+    lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+
+    label = lv_label_create( widgetOption );
+    lv_label_set_text( label, "Select bakes to delete" );
+    lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+    lv_obj_t * btnRemoveBakes = lv_button_create( widgetOption );
+    lv_obj_set_style_shadow_width( btnRemoveBakes, 0, LV_PART_MAIN );
+    lv_obj_set_style_pad_all( btnRemoveBakes, 10, LV_PART_MAIN );
+    lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
+    lv_obj_add_event_cb( btnRemoveBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_REMOVE );
+    labelBtn = lv_label_create( btnRemoveBakes );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "DoIt" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnRemoveBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
+
+    // static option: swaping place of two bakes positions
+    widgetOption = lv_button_create( tabOptions );
+    lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
+    lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+    lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
+    lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
+    lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
+    lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
+    lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
+    lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
+    lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
+    lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
+
+    label = lv_label_create( widgetOption );
+    lv_label_set_text( label, "Swap 2 bake positions" );
+    lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
+    lv_obj_t * btnSwapBakes = lv_button_create( widgetOption );
+    lv_obj_set_style_shadow_width( btnSwapBakes, 0, LV_PART_MAIN );
+    lv_obj_set_style_pad_all( btnSwapBakes, 10, LV_PART_MAIN );
+    lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
+    lv_obj_add_event_cb( btnSwapBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_SWAP );  // use same callback as for removal
+    labelBtn = lv_label_create( btnSwapBakes );
+    lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+    lv_label_set_text( labelBtn, "DoIt" );
+    lv_obj_center( labelBtn );
+    lv_obj_align( btnSwapBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
+
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
-
-  // static option: Removing bakes positions
-  widgetOption = lv_button_create( tabOptions );
-  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
-  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
-  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
-  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
-  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
-  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
-  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
-
-  label = lv_label_create( widgetOption );
-  lv_label_set_text( label, "Select bakes to delete" );
-  lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
-  lv_obj_t * btnRemoveBakes = lv_button_create( widgetOption );
-  lv_obj_set_style_shadow_width( btnRemoveBakes, 0, LV_PART_MAIN );
-  lv_obj_set_style_pad_all( btnRemoveBakes, 10, LV_PART_MAIN );
-  lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( btnRemoveBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
-  lv_obj_add_event_cb( btnRemoveBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_REMOVE );
-  labelBtn = lv_label_create( btnRemoveBakes );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "DoIt" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnRemoveBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
-
-  // static option: swaping place of two bakes positions
-  widgetOption = lv_button_create( tabOptions );
-  lv_obj_set_size( widgetOption, lv_obj_get_style_width( tabOptions, LV_PART_MAIN ), OPTION_HEIGHT );
-  lv_obj_set_style_bg_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-  lv_obj_set_style_bg_opa( widgetOption, LV_OPA_20, LV_PART_MAIN );
-  lv_obj_set_style_radius( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_set_style_pad_ver( widgetOption, 5, LV_PART_MAIN );
-  lv_obj_set_style_pad_hor( widgetOption, 25, LV_PART_MAIN );
-  lv_obj_set_style_border_width( widgetOption, 1, LV_PART_MAIN );
-  lv_obj_set_style_border_color( widgetOption, lv_palette_darken(LV_PALETTE_GREY, 3), LV_PART_MAIN );
-  lv_obj_set_style_border_opa( widgetOption, LV_OPA_40, LV_PART_MAIN );
-  lv_obj_set_style_shadow_width( widgetOption, 0, LV_PART_MAIN );
-  lv_obj_align( widgetOption, LV_ALIGN_TOP_MID, 0, i++ * OPTION_HEIGHT );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( widgetOption, LV_OBJ_FLAG_CLICKABLE );
-
-  label = lv_label_create( widgetOption );
-  lv_label_set_text( label, "Swap 2 bake positions" );
-  lv_obj_set_style_text_color( label, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_obj_align( label, LV_ALIGN_LEFT_MID, 0, 0 );
-  lv_obj_t * btnSwapBakes = lv_button_create( widgetOption );
-  lv_obj_set_style_shadow_width( btnSwapBakes, 0, LV_PART_MAIN );
-  lv_obj_set_style_pad_all( btnSwapBakes, 10, LV_PART_MAIN );
-  lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_PRESS_LOCK );
-  lv_obj_remove_flag( btnSwapBakes, LV_OBJ_FLAG_SCROLL_ON_FOCUS );
-  lv_obj_add_event_cb( btnSwapBakes, btnOptionRemoveBakesEventCb, LV_EVENT_CLICKED, (void *)BAKE_SWAP );  // use same callback as for removal
-  labelBtn = lv_label_create( btnSwapBakes );
-  lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-  lv_label_set_text( labelBtn, "DoIt" );
-  lv_obj_center( labelBtn );
-  lv_obj_align( btnSwapBakes, LV_ALIGN_RIGHT_MID, 0, 0 );
-
 }
 
 void GUI_updateOption( setting_t &option ) {
-  switch( option.valuetype ) {
-    case OPT_VAL_BOOL:
-      if( option.btn ) {
-        lv_obj_t * labelBtn = lv_obj_get_child( option.btn, 0 );  // first child is the label in our case
-        lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
-        lv_obj_center( labelBtn );
-        if( option.currentValue.bValue ) {
-          lv_label_set_text( labelBtn, "On" );
-          lv_obj_set_style_bg_color( option.btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
-        } else {
-          lv_label_set_text( labelBtn, "Off" );
-          lv_obj_set_style_bg_color( option.btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
+  if( inEventHandling
+  || pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
+    switch( option.valuetype ) {
+      case OPT_VAL_BOOL:
+        if( option.btn ) {
+          lv_obj_t * labelBtn = lv_obj_get_child( option.btn, 0 );  // first child is the label in our case
+          lv_obj_set_style_text_color( labelBtn, lv_palette_darken(LV_PALETTE_BROWN, 3), LV_PART_MAIN );
+          lv_obj_center( labelBtn );
+          if( option.currentValue.bValue ) {
+            lv_label_set_text( labelBtn, "On" );
+            lv_obj_set_style_bg_color( option.btn, LV_COLOR_MAKE(0x50, 0xAF, 0x4C), LV_PART_MAIN );
+          } else {
+            lv_label_set_text( labelBtn, "Off" );
+            lv_obj_set_style_bg_color( option.btn, {0xF0, 0x20, 0x20}, LV_PART_MAIN );
+          }
         }
-      }
-      break;
-    case OPT_VAL_INT:
-      break;
-    case OPT_VAL_TRIGGER:
-      // nothing to do (button is the same)
-      break;
+        break;
+      case OPT_VAL_INT:
+        break;
+      case OPT_VAL_TRIGGER:
+        // nothing to do (button is the same)
+        break;
+    }
+    if( 0 == inEventHandling ) {
+      xSemaphoreGive( xSemaphore );
+    }
   }
 }
