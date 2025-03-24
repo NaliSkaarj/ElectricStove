@@ -8,7 +8,7 @@
 
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
-unsigned long currentTime, next10S, next1S, next10mS, next100mS;
+unsigned long currentTime, lastCurrentTime, next10S, next1S, next100mS;
 static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
 static xTimerHandle xTimer;
@@ -264,23 +264,16 @@ void setup() {
   xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
   xTimerStart( xTimer, 5000 );
 
-  currentTime = next10S = next1S = next10mS = millis();
+  currentTime = next10S = next1S = millis();
+  lastCurrentTime = currentTime - 10;   // first call with 10ms
 }
 
 void loop() {
   currentTime = millis();
 
-  // handle stuff every 10 miliseconds
-  if( currentTime >= next10mS ) {
-    GUI_Handle( 10 );
-    next10mS += 10;
-
-    // trick (GUI_Handle() can take over 200ms)
-    unsigned long currentTimeTmp = millis();
-    if( currentTimeTmp >= next10mS ) {
-      next10mS = currentTimeTmp + 10; // if shifted next10ms is too little, move it forward against current time
-    }
-  }
+  // handle stuff every 10 miliseconds (by default)
+  GUI_Handle( currentTime - lastCurrentTime );
+  lastCurrentTime = currentTime;
 
   // handle stuff every 100 miliseconds
   if( currentTime >= next100mS ) {

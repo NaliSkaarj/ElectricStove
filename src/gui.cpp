@@ -1132,7 +1132,7 @@ void GUI_Init() {
 void GUI_Handle( uint32_t tick_period ) {
   if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 1000/portTICK_PERIOD_MS ) ) ) {
     lv_timer_handler();
-    lv_tick_inc( 10 );
+    lv_tick_inc( tick_period );
     xSemaphoreGive( xSemaphore );
   }
 }
