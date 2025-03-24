@@ -4,7 +4,7 @@
 #define BUZZ_OUTPUT_PIN         33
 #define BUZZ_BUZZERS_MAX        10
 #define BUZZER_STACK_SIZE       700 // number of words (at 700 seemes to be OK, @600 it often reset itself mainly by WDT)
-#define BUZZER_TASK_PRIORITY    3
+#define BUZZER_TASK_PRIORITY    1
 
 /**
  * Need to be called from main Setup/Init function to run the service

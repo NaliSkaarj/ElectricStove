@@ -182,7 +182,7 @@ void OTA_Init() {
       }
     });
 
-    taskHandle = xTaskCreateStatic( vTaskOTA, "OTA", OTA_STACK_SIZE, NULL, OTA_TASK_PRIORITY, taskStack, &taskTCB );
+    taskHandle = xTaskCreateStaticPinnedToCore( vTaskOTA, "OTA", OTA_STACK_SIZE, NULL, OTA_TASK_PRIORITY, taskStack, &taskTCB, 0 );
 
     if( NULL == taskHandle ) {
       Serial.println( "OTA: Task couldn't be created" );

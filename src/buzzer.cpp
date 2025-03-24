@@ -86,7 +86,7 @@ static int getFreeSlotIndex() {
 static void vTaskBuzzer( void * pvParameters ) {
   while( 1 ) {
     buzzerHandle( millis() );
-    vTaskDelay( 1 / portTICK_PERIOD_MS );
+    vTaskDelay( 10 / portTICK_PERIOD_MS );
   }
 }
 
@@ -153,7 +153,7 @@ void BUZZ_Init( void ) {
     return;
   }
 
-  taskHandle = xTaskCreateStatic( vTaskBuzzer, "Buzzer", BUZZER_STACK_SIZE, NULL, BUZZER_TASK_PRIORITY, taskStack, &taskTCB );
+  taskHandle = xTaskCreateStaticPinnedToCore( vTaskBuzzer, "Buzzer", BUZZER_STACK_SIZE, NULL, BUZZER_TASK_PRIORITY, taskStack, &taskTCB, 0 );
 
   if( NULL == taskHandle ) {
     Serial.println( "BUZZER: Task couldn't be created" );
