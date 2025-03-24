@@ -23,11 +23,11 @@ static void otaOn() {
   initialized = false;
   while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
     Serial.println( "WiFi connection Failed! Retrying..." );
-    tryAgain--;
     if( 0 == tryAgain ) { 
       Serial.println( "OTA(On): Couldn't connect to WiFi." );
       return;   // no WiFi == no OTA
     }
+    tryAgain--;
     vTaskDelay( 3000 / portTICK_PERIOD_MS );
   }
 
