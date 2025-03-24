@@ -1091,7 +1091,7 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
 }
 
 static void setDefaultTab( lv_timer_t * timer ) {
-  GUI_SetTabActive( 0 );
+  lv_tabview_set_active( tabView, 0, LV_ANIM_OFF );
 }
 
 void GUI_Init() {
