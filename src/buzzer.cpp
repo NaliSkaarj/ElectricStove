@@ -96,10 +96,11 @@ static void buzzerHandle( unsigned long currentTime ) {
     return;
   }
 
-  globalTime = currentTime;
   buzzHandleForce = false;
 
   if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+    globalTime = currentTime;
+
     for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
       // check against 'buzzing' activation
       if( ( globalTime >= buzzerList[ x ].start )
@@ -220,26 +221,27 @@ bool BUZZ_Delete( int handle ) {
     return false;
   }
 
-    if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
-      for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
-        if( handle == buzzerList[ x ].hash ) {
-          buzzerList[ x ].hash = 0;
-          buzzerList[ x ].active = false;
-          retValue = true;
-        buzzHandleForce = true;
-        buzzerHandle( globalTime );  // recalculate list of 'buzzings'
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
+    for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
+      if( handle == buzzerList[ x ].hash ) {
+        buzzerList[ x ].hash = 0;
+        buzzerList[ x ].active = false;
+        retValue = true;
+        break;
       }
-
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      Serial.println( "BUZZ_Delete: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-      OTA_LogWrite( "BUZZ_Delete: couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
     }
+
+    xSemaphoreGive( xSemaphore );
+  } else {
+    failSemaphoreCounter++;
+    Serial.println( "BUZZ_Delete: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
+    OTA_LogWrite( "BUZZ_Delete: couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
+  }
+
+  buzzHandleForce = true;
+  buzzerHandle( globalTime );  // recalculate list of 'buzzings'
 
   return retValue;
 }
