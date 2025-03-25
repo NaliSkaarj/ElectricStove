@@ -1,6 +1,5 @@
 #include "buzzer.h"
 #include <Arduino.h>
-#include "myOTA.h"
 
 typedef struct buzzer
 {
@@ -44,9 +43,6 @@ static unsigned int getNextHash() {
   } else {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_hash: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-    OTA_LogWrite( "BUZZ_hash: couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
   }
 
   return ++tmpHash;
@@ -67,9 +63,6 @@ static int getFreeSlotIndex() {
   } else {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_slot: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-    OTA_LogWrite( "BUZZ_slot: couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
   }
 
   return freeSlotIdx;
@@ -124,9 +117,6 @@ static void buzzerHandle( unsigned long currentTime ) {
   } else {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_Handle: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-    OTA_LogWrite( "BUZZ_Handle: couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
   }
 
   if( muted ) {
@@ -195,9 +185,6 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   } else {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_Add: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-    OTA_LogWrite( "BUZZ_Add: couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
   }
 
   buzzHandleForce = true;
@@ -235,9 +222,6 @@ bool BUZZ_Delete( int handle ) {
   } else {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_Delete: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
-    OTA_LogWrite( "BUZZ_Delete: couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
   }
 
   buzzHandleForce = true;
