@@ -126,16 +126,14 @@ void BUZZ_Init( void ) {
     return;
   }
 
+  pinMode( BUZZ_OUTPUT_PIN, OUTPUT );
+  digitalWrite( BUZZ_OUTPUT_PIN, LOW );
+
   xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
   assert( xSemaphore );
 
   taskHandle = xTaskCreateStaticPinnedToCore( vTaskBuzzer, "Buzzer", BUZZER_STACK_SIZE, NULL, BUZZER_TASK_PRIORITY, taskStack, &taskTCB, 0 );
   assert( taskHandle );
-
-  globalTime = millis();
-
-  pinMode( BUZZ_OUTPUT_PIN, OUTPUT );
-  digitalWrite( BUZZ_OUTPUT_PIN, LOW );
 
   for( int x=0; x<BUZZ_BUZZERS_MAX; x++ ) {
     buzzerList[ x ].hash = 0;
@@ -146,6 +144,7 @@ void BUZZ_Init( void ) {
     buzzerList[ x ].active = false;
   }
 
+  globalTime = millis();
   initialized = true;
 }
 
