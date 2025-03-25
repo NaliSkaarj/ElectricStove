@@ -7,16 +7,16 @@ static TaskHandle_t       taskHandle = NULL;
 static StaticTask_t       taskTCB;
 static StackType_t        taskStack[ OTA_STACK_SIZE ];
 
-WiFiServer server( PORT ); // server port to listen on
-WiFiClient client;
 bool initialized = false;
 bool otaOnRequested = false;
 bool otaOffRequested = false;
 static otaActiveCb otaActiveCB = NULL;
 
+WiFiServer server( PORT ); // server port to listen on
+WiFiClient client;
+
 static void otaOn() {
   uint8_t tryAgain = 3;
-  ArduinoOTA.setHostname( OTA_HOST_NAME );
   Serial.println( "OTA activating..." );
   WiFi.mode( WIFI_STA );
   WiFi.begin( wifi_SSID, wifi_PASS );
@@ -182,12 +182,10 @@ void OTA_Init() {
       }
     });
 
-    taskHandle = xTaskCreateStaticPinnedToCore( vTaskOTA, "OTA", OTA_STACK_SIZE, NULL, OTA_TASK_PRIORITY, taskStack, &taskTCB, 0 );
+    ArduinoOTA.setHostname( OTA_HOST_NAME );
 
-    if( NULL == taskHandle ) {
-      Serial.println( "OTA: Task couldn't be created" );
-      return;
-    }  
+    taskHandle = xTaskCreateStaticPinnedToCore( vTaskOTA, "OTA", OTA_STACK_SIZE, NULL, OTA_TASK_PRIORITY, taskStack, &taskTCB, 0 );
+    assert( taskHandle );
 }
 
 void OTA_Activate( bool activate ) {
