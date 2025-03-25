@@ -19,7 +19,6 @@ static bool               muted = false;
 static SemaphoreHandle_t  xSemaphore = NULL;
 static StaticSemaphore_t  xMutexBuffer;
 static uint32_t           failSemaphoreCounter = 0;   // debug purpose only
-static bool               buzzHandleForce = false;
 static TaskHandle_t       taskHandle = NULL;
 static StaticTask_t       taskTCB;
 static StackType_t        taskStack[ BUZZER_STACK_SIZE ];
@@ -82,14 +81,10 @@ static void buzzerHandle( unsigned long currentTime ) {
     return;
   }
 
-  if( globalTime == currentTime
-    && !buzzHandleForce
-  ) {
+  if( globalTime == currentTime ) {
     // no change in time, nothing to do
     return;
   }
-
-  buzzHandleForce = false;
 
   if( pdTRUE == xSemaphoreTake( xSemaphore, (TickType_t)( 100/portTICK_PERIOD_MS ) ) ) {
     globalTime = currentTime;
@@ -187,9 +182,6 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
     Serial.println( "BUZZ_Add: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 
-  buzzHandleForce = true;
-  buzzerHandle( globalTime );  // force activating buzzer (if needed)
-
   return highestHash;
 }
 
@@ -223,9 +215,6 @@ bool BUZZ_Delete( int handle ) {
     failSemaphoreCounter++;
     Serial.println( "BUZZ_Delete: couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
-
-  buzzHandleForce = true;
-  buzzerHandle( globalTime );  // recalculate list of 'buzzings'
 
   return retValue;
 }
