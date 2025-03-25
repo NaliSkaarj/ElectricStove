@@ -50,6 +50,7 @@ static void otaOff() {
 
   server.end();
   ArduinoOTA.end();
+  WiFi.disconnect( true, false );
   Serial.println( "WiFi disconnected. OTA disabled." );
   initialized = false;
 }
