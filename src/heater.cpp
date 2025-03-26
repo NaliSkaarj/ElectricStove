@@ -49,7 +49,7 @@ static void vTaskHeater( void * pvParameters ) {
       if( BAD_TEMP_CNT_RISE_ERROR < badTemparature ) {
         badTemparature = 0;
         BUZZ_Add( 0, 200, 100, 10 );
-        OTA_LogWrite( "HEATER(task): max6675 temp read fail\n" );
+        Serial.println( "HEATER(task): max6675 temp read fail\n" );
       }
     }
     heaterHandle();
@@ -85,7 +85,7 @@ static void heaterHandle() {
 
       case HEATING_PAUSE: {
         // nothing to do
-        OTA_LogWrite( "HEATER(Handle): case not handled yet #3\n" );
+        Serial.println( "HEATER(Handle): case not handled yet #3\n" );
         break;
       }
     }
@@ -93,9 +93,7 @@ static void heaterHandle() {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(Handle): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(Handle): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -127,9 +125,7 @@ void HEATER_setTemperature( uint16_t temp ) {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(setTemperature): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(setTemperature): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -144,9 +140,7 @@ void HEATER_setTime( uint32_t time ) {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(setTime): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(setTime): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -177,7 +171,7 @@ void HEATER_start( void ) {
 
       // case HEATING_PAUSE: use HEATER_pause() for this case
       default: {
-        OTA_LogWrite( "HEATER(start): default case invoked" );
+        Serial.println( "HEATER(start): default case invoked" );
         break;
       }
     }
@@ -185,9 +179,7 @@ void HEATER_start( void ) {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(start): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(start): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -209,13 +201,13 @@ void HEATER_pause( void ) {
         // recontinue processing
         PID_On();
         heatingTimePauseTotal += ( millis() - heatingTimePauseStart );
-        Serial.println( heatingTimePauseTotal );
+        Serial.printf( "Pause time total: %d\n", heatingTimePauseTotal );
         heaterState = HEATING_PROCESSING;
         break;
       }
 
       default: {
-        OTA_LogWrite( "HEATER(pause): default case invoked" );
+        Serial.println( "HEATER(pause): default case invoked" );
         break;
       }
     }
@@ -223,9 +215,7 @@ void HEATER_pause( void ) {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(pause): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(pause): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -244,7 +234,7 @@ void HEATER_stop( void ) {
       }
 
       default: {
-        OTA_LogWrite( "HEATER(stop): default case invoked" );
+        Serial.println( "HEATER(stop): default case invoked" );
         break;
       }
     }
@@ -252,9 +242,7 @@ void HEATER_stop( void ) {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(stop): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(stop): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 }
 
@@ -300,9 +288,7 @@ uint32_t HEATER_getTimeRemaining() {
     xSemaphoreGive( xSemaphore );
   } else {
     failSemaphoreCounter++;
-    OTA_LogWrite( "HEATER(getTimeRemaining): couldn't take semaphore: " );
-    OTA_LogWrite( failSemaphoreCounter );
-    OTA_LogWrite( "\n" );
+    Serial.println( "HEATER(getTimeRemaining): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 
   return result;
