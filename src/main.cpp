@@ -209,7 +209,7 @@ static void heatingDone( void ) {
 }
 
 static void otaStateChanged( bool otaState ) {
-  Serial.printf( "OTA changed state to: %d\n", (uint32_t)otaState );
+  Serial.printf( "WiFi changed state to: %s\n", otaState?"connected":"disconnected" );
   settings[ OPTION_OTA ].currentValue.bValue = otaState;
   // update GUI icons
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );

@@ -15,32 +15,23 @@ static otaActiveCb otaActiveCB = NULL;
 WiFiServer server( PORT ); // server port to listen on
 WiFiClient client;
 
-static void otaOn() {
-  uint8_t tryAgain = 3;
-  Serial.println( "OTA activating..." );
-  WiFi.mode( WIFI_STA );
-  WiFi.begin( wifi_SSID, wifi_PASS );
-  initialized = false;
-  while ( WiFi.waitForConnectResult() != WL_CONNECTED ) {
-    Serial.println( "WiFi connection Failed! Retrying..." );
-    if( 0 == tryAgain ) { 
-      Serial.println( "OTA(On): Couldn't connect to WiFi." );
-      return;   // no WiFi == no OTA
-    }
-    tryAgain--;
-    vTaskDelay( 3000 / portTICK_PERIOD_MS );
+static bool otaOn() {
+  if( WL_CONNECTED == WiFi.status() ) {
+    Serial.println( "connected" );
+    ArduinoOTA.begin();
+    server.begin();
+    server.setNoDelay( true );
+    initialized = true;
+  
+    Serial.println( "OTA ready!" );
+    Serial.print( "IP address: " );
+    Serial.println( WiFi.localIP() );
+  } else {
+    Serial.print( "." );
+    initialized = false;
   }
 
-  initialized = true;
-
-  ArduinoOTA.begin();
-
-  server.begin();
-  server.setNoDelay( true );
-
-  Serial.println( "OTA ready!" );
-  Serial.print( "IP address: " );
-  Serial.println( WiFi.localIP() );
+  return initialized;
 }
 
 static void otaOff() {
@@ -50,7 +41,7 @@ static void otaOff() {
 
   server.end();
   ArduinoOTA.end();
-  WiFi.disconnect( true, false );
+  WiFi.disconnect();
   Serial.println( "WiFi disconnected. OTA disabled." );
   initialized = false;
 }
@@ -107,7 +98,8 @@ static void otaHandle() {
 
     server.end();
     ArduinoOTA.end();
-    Serial.println( "WiFi disconnected. OTA disabled." );
+    WiFi.disconnect();
+    Serial.println( "WiFi connection lost." );
 
     initialized = false;
     if( NULL != otaActiveCB ) {
@@ -117,19 +109,49 @@ static void otaHandle() {
 }
 
 static void vTaskOTA( void * pvParameters ) {
+  static bool connecting1stStep = true;
+  static uint32_t tryAgain = 100;     // retrying for time: tryAgain * 100ms
+
   while( 1 ) {
-    if( otaOnRequested ) {
-      otaOn();
-      otaOnRequested = false;
-      if( NULL != otaActiveCB ) {
-        otaActiveCB( initialized );
+    if( otaOnRequested && !otaOffRequested ) {
+      if( connecting1stStep ) {
+        Serial.print( "WiFi connecting" );
+        WiFi.mode( WIFI_STA );
+        WiFi.begin( wifi_SSID, wifi_PASS );
+        connecting1stStep = false;
+      }
+      if( otaOn() ) {
+        otaOnRequested = false;
+        connecting1stStep = true; // reset for next connection
+        tryAgain = 50;            // reset for next connection
+        if( NULL != otaActiveCB ) {
+          otaActiveCB( initialized );
+        }
+      } else {
+        if( 0 == tryAgain ) {
+          otaOnRequested = false;
+          connecting1stStep = true; // reset for next connection
+          tryAgain = 50;            // reset for next connection
+          Serial.println( "WiFi connection failed." );
+          otaOff();                 // explicitly disconnect wifi
+          if( NULL != otaActiveCB ) {
+            otaActiveCB( initialized );
+          }
+        }
+        tryAgain--;
       }
     }
     if( otaOffRequested ) {
-      otaOff();
-      otaOffRequested = false;
-      if( NULL != otaActiveCB ) {
-        otaActiveCB( initialized );
+      if( otaOnRequested ) {
+        otaOnRequested = false;     // handle otaOff in next cycle
+      } else {
+        otaOff();
+        otaOffRequested = false;
+        connecting1stStep = true;   // reset for next connection
+        tryAgain = 50;              // reset for next connection
+        if( NULL != otaActiveCB ) {
+          otaActiveCB( initialized );
+        }
       }
     }
 
