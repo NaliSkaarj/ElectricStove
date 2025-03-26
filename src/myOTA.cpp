@@ -15,6 +15,13 @@ static otaActiveCb otaActiveCB = NULL;
 WiFiServer server( PORT ); // server port to listen on
 WiFiClient client;
 
+static void WiFiEvent( WiFiEvent_t event, WiFiEventInfo_t info ) {
+  if ( event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED ) {
+      Serial.print( "Wi-Fi disconnected! Reason: " );
+      Serial.println( WiFi.disconnectReasonName( (wifi_err_reason_t)info.wifi_sta_disconnected.reason ) );
+  }
+}
+
 static bool otaOn() {
   if( WL_CONNECTED == WiFi.status() ) {
     Serial.println( "connected" );
@@ -117,6 +124,7 @@ static void vTaskOTA( void * pvParameters ) {
       if( connecting1stStep ) {
         Serial.print( "WiFi connecting" );
         WiFi.mode( WIFI_STA );
+        WiFi.onEvent( WiFiEvent );
         WiFi.begin( wifi_SSID, wifi_PASS );
         connecting1stStep = false;
       }
