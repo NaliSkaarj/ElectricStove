@@ -59,47 +59,43 @@ static void vTaskHeater( void * pvParameters ) {
 }
 
 static void heaterHandle() {
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      switch( heaterState ) {
-        case HEATING_STOP: {
-          // nothing to do
-          break;
-        }
-
-        case HEATING_PROCESSING: {
-          if( millis() >= ( heatingTimeStart + heatingTimeRequested + heatingTimePauseTotal ) ) {  // time is up
-            PID_Off();
-            heaterState = HEATING_STOP;
-
-            if( NULL != funcDoneCB ) {
-              funcDoneCB();
-            }
-
-            break;
-          }
-
-          PID_updateTemp( (double)currentTemperature );
-          PID_Compute();
-          break;
-        }
-
-        case HEATING_PAUSE: {
-          // nothing to do
-          OTA_LogWrite( "HEATER(Handle): case not handled yet #3\n" );
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    switch( heaterState ) {
+      case HEATING_STOP: {
+        // nothing to do
+        break;
       }
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(Handle): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
+      case HEATING_PROCESSING: {
+        if( millis() >= ( heatingTimeStart + heatingTimeRequested + heatingTimePauseTotal ) ) {  // time is up
+          PID_Off();
+          heaterState = HEATING_STOP;
+
+          if( NULL != funcDoneCB ) {
+            funcDoneCB();
+          }
+
+          break;
+        }
+
+        PID_updateTemp( (double)currentTemperature );
+        PID_Compute();
+        break;
+      }
+
+      case HEATING_PAUSE: {
+        // nothing to do
+        OTA_LogWrite( "HEATER(Handle): case not handled yet #3\n" );
+        break;
+      }
     }
+
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(Handle): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(Handle): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -108,18 +104,14 @@ void HEATER_Init( SPIClass * spi ) {
     return;
   }
 
-  taskHandle = xTaskCreateStatic( vTaskHeater, "Heater", HEATER_STACK_SIZE, NULL, HEATER_TASK_PRIORITY, taskStack, &taskTCB );
+  xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
+  assert( xSemaphore );
 
-  if( NULL == taskHandle ) {
-    OTA_LogWrite( "HEATER: Task couldn't be created\n" );
-    initialized = false;
-    return;
-  }
+  taskHandle = xTaskCreateStatic( vTaskHeater, "Heater", HEATER_STACK_SIZE, NULL, HEATER_TASK_PRIORITY, taskStack, &taskTCB );
+  assert( taskHandle );
 
   PID_Init();
   MAX6675_Init( spi, HEATER_MAX6675_CS );
-
-  xSemaphore = xSemaphoreCreateMutexStatic( &xMutexBuffer );
 
   initialized = true;
 }
@@ -129,19 +121,15 @@ void HEATER_setTemperature( uint16_t temp ) {
     return;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      heatingTempRequested = ( MAX_ALLOWED_TEMP < temp ) ? MAX_ALLOWED_TEMP : temp;
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    heatingTempRequested = ( MAX_ALLOWED_TEMP < temp ) ? MAX_ALLOWED_TEMP : temp;
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(setTemperature): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
-    }
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(setTemperature): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(setTemperature): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -150,19 +138,15 @@ void HEATER_setTime( uint32_t time ) {
     return;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      heatingTimeRequested = time;
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    heatingTimeRequested = time;
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(setTime): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
-    }
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(setTime): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(setTime): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -180,34 +164,30 @@ void HEATER_start( void ) {
     return;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      switch( heaterState ) {
-        case HEATING_STOP: {
-          PID_SetPoint( heatingTempRequested );
-          heatingTimeStart = millis();
-          heatingTimePauseTotal = 0;
-          PID_On();
-          heaterState = HEATING_PROCESSING;
-          break;
-        }
-
-        // case HEATING_PAUSE: use HEATER_pause() for this case
-        default: {
-          OTA_LogWrite( "HEATER(start): default case invoked" );
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    switch( heaterState ) {
+      case HEATING_STOP: {
+        PID_SetPoint( heatingTempRequested );
+        heatingTimeStart = millis();
+        heatingTimePauseTotal = 0;
+        PID_On();
+        heaterState = HEATING_PROCESSING;
+        break;
       }
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(start): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
+      // case HEATING_PAUSE: use HEATER_pause() for this case
+      default: {
+        OTA_LogWrite( "HEATER(start): default case invoked" );
+        break;
+      }
     }
+
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(start): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(start): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -216,40 +196,36 @@ void HEATER_pause( void ) {
     return;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      switch( heaterState ) {
-        case HEATING_PROCESSING: {
-          PID_Off();
-          heatingTimePauseStart = millis();
-          heaterState = HEATING_PAUSE;
-          break;
-        }
-
-        case HEATING_PAUSE: {
-          // recontinue processing
-          PID_On();
-          heatingTimePauseTotal += ( millis() - heatingTimePauseStart );
-          Serial.println( heatingTimePauseTotal );
-          heaterState = HEATING_PROCESSING;
-          break;
-        }
-
-        default: {
-          OTA_LogWrite( "HEATER(pause): default case invoked" );
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    switch( heaterState ) {
+      case HEATING_PROCESSING: {
+        PID_Off();
+        heatingTimePauseStart = millis();
+        heaterState = HEATING_PAUSE;
+        break;
       }
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(pause): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
+      case HEATING_PAUSE: {
+        // recontinue processing
+        PID_On();
+        heatingTimePauseTotal += ( millis() - heatingTimePauseStart );
+        Serial.println( heatingTimePauseTotal );
+        heaterState = HEATING_PROCESSING;
+        break;
+      }
+
+      default: {
+        OTA_LogWrite( "HEATER(pause): default case invoked" );
+        break;
+      }
     }
+
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(pause): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(pause): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -258,31 +234,27 @@ void HEATER_stop( void ) {
     return;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      switch( heaterState ) {
-        case HEATING_PROCESSING:
-        case HEATING_PAUSE: {
-          PID_Off();
-          heaterState = HEATING_STOP;
-          break;
-        }
-
-        default: {
-          OTA_LogWrite( "HEATER(stop): default case invoked" );
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    switch( heaterState ) {
+      case HEATING_PROCESSING:
+      case HEATING_PAUSE: {
+        PID_Off();
+        heaterState = HEATING_STOP;
+        break;
       }
 
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(stop): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
+      default: {
+        OTA_LogWrite( "HEATER(stop): default case invoked" );
+        break;
+      }
     }
+
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(stop): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(stop): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 }
 
@@ -307,34 +279,30 @@ uint32_t HEATER_getTimeRemaining() {
     return result;
   }
 
-  if( xSemaphore != NULL ) {
-    if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
-      switch( heaterState ) {
-        case HEATING_STOP: {
-          // nothing to do
-          result = 0;
-          break;
-        }
-
-        case HEATING_PROCESSING: {
-          result = heatingTimeRequested - ( millis() - ( heatingTimeStart + heatingTimePauseTotal ));
-          break;
-        }
-
-        case HEATING_PAUSE: {
-          result = heatingTimeRequested - ( heatingTimePauseStart - ( heatingTimeStart + heatingTimePauseTotal ) );
-          break;
-        }
+  if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
+    switch( heaterState ) {
+      case HEATING_STOP: {
+        // nothing to do
+        result = 0;
+        break;
       }
-      xSemaphoreGive( xSemaphore );
-    } else {
-      failSemaphoreCounter++;
-      OTA_LogWrite( "HEATER(getTimeRemaining): couldn't take semaphore: " );
-      OTA_LogWrite( failSemaphoreCounter );
-      OTA_LogWrite( "\n" );
+
+      case HEATING_PROCESSING: {
+        result = heatingTimeRequested - ( millis() - ( heatingTimeStart + heatingTimePauseTotal ));
+        break;
+      }
+
+      case HEATING_PAUSE: {
+        result = heatingTimeRequested - ( heatingTimePauseStart - ( heatingTimeStart + heatingTimePauseTotal ) );
+        break;
+      }
     }
+    xSemaphoreGive( xSemaphore );
   } else {
-    OTA_LogWrite( "HEATER(getTimeRemaining): semaphore is NULL\n" );
+    failSemaphoreCounter++;
+    OTA_LogWrite( "HEATER(getTimeRemaining): couldn't take semaphore: " );
+    OTA_LogWrite( failSemaphoreCounter );
+    OTA_LogWrite( "\n" );
   }
 
   return result;
