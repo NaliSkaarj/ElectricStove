@@ -21,8 +21,8 @@ void BUZZ_Init( void );
  * return       -   (unsigned int) 'buzzing' number (handle)
  *                  0: when adding failed (ie. 'buzzing' list full, module not initialized, 'buzzing' parameter's incorrect)
  */
-unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned long repeatDelay, int repeat );
-unsigned int BUZZ_Add( unsigned long period, unsigned long repeatDelay, int repeat );
+unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned long repeatDelay, unsigned int repeat );
+unsigned int BUZZ_Add( unsigned long period, unsigned long repeatDelay, unsigned int repeat );
 unsigned int BUZZ_Add( unsigned long period );
 
 /**

@@ -148,7 +148,7 @@ void BUZZ_Init( void ) {
   initialized = true;
 }
 
-unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned long repeatDelay, int repeat ) {
+unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned long repeatDelay, unsigned int repeat ) {
   if( (false == initialized) || (0 == period) ) {
     return 0;
   }
@@ -184,7 +184,7 @@ unsigned int BUZZ_Add( unsigned long startDelay, unsigned long period, unsigned 
   return highestHash;
 }
 
-unsigned int BUZZ_Add( unsigned long period, unsigned long repeatDelay, int repeat ) {
+unsigned int BUZZ_Add( unsigned long period, unsigned long repeatDelay, unsigned int repeat ) {
   return BUZZ_Add( 0, period, repeatDelay, repeat );
 }
 
