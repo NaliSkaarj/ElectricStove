@@ -35,7 +35,8 @@ static void vTaskHeater( void * pvParameters );
 static void heaterHandle( void );
 
 static void vTaskHeater( void * pvParameters ) {
-  static uint8_t badTemparature = 0;
+  static uint8_t badTemparatureCount = 0;
+  static uint32_t buzzId;
 
   while( 1 ) {
     float currTemp = MAX6675_readCelsius();
@@ -44,11 +45,18 @@ static void vTaskHeater( void * pvParameters ) {
     && MAX_ALLOWED_TEMP >= currTemp
     ) {
       currentTemperature = currTemp;
+      if( 0 < buzzId ) {
+        BUZZ_Delete( buzzId );      // stop buzzing if no temp error
+        buzzId = 0;
+      }
     } else {
-      badTemparature++;
-      if( BAD_TEMP_CNT_RISE_ERROR < badTemparature ) {
-        badTemparature = 0;
-        BUZZ_Add( 0, 200, 100, 10 );
+      badTemparatureCount++;
+      if( BAD_TEMP_CNT_RISE_ERROR < badTemparatureCount ) {
+        currentTemperature = MAX_ALLOWED_TEMP;    // this force PID to heating less
+        badTemparatureCount = 0;
+        if( 0 == buzzId ) {
+          buzzId = BUZZ_Add( 0, 200, 100, UINT32_MAX );   // buzzing continuously
+        }
         Serial.println( "HEATER(task): max6675 temp read fail\n" );
       }
     }
