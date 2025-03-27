@@ -39,6 +39,7 @@ static lv_obj_t * roller3;
 static lv_obj_t * roller4;
 static lv_obj_t * bakeList;
 static lv_obj_t * optionList;
+static lv_obj_t * msgBox;
 static updateTimeCb timeChangedCB = NULL;
 static updateTempCb tempChangedCB = NULL;
 static operationCb heatingStartCB = NULL;
@@ -85,6 +86,7 @@ static void btnBakesRemovalCancelEventCb( lv_event_t * event );
 static void btnBakesRemovalDeleteEventCb( lv_event_t * event );
 static void btnBakesSwapEventCb( lv_event_t * event );
 static void checkboxChangedEventCb( lv_event_t * event );
+static void msgBoxOkEventCb( lv_event_t * event );
 static void rollerCreate( roller_t rType );
 static void createOperatingButtons();
 static void setContentHome();
@@ -433,7 +435,8 @@ static void btnBakesRemovalCancelEventCb( lv_event_t * event ) {
 
   lv_event_stop_processing( event );
   lv_obj_delete( containerBakesRemoval );
-  containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+  containerBakesRemoval = NULL;   // LVGL bug? pointer is not NULL here
+  msgBox = NULL;                  // LVGL bug? pointer is not NULL here
 }
 
 static void btnBakesRemovalDeleteEventCb( lv_event_t * event ) {
@@ -445,7 +448,8 @@ static void btnBakesRemovalDeleteEventCb( lv_event_t * event ) {
   if( containerBakesRemoval ) {
     lv_event_stop_processing( event );
     lv_obj_delete( containerBakesRemoval );
-    containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+    containerBakesRemoval = NULL;   // LVGL bug? pointer is not NULL here
+    msgBox = NULL;                  // LVGL bug? pointer is not NULL here
   }
   
   if( NULL != removeBakesCB ) {
@@ -469,7 +473,8 @@ static void btnBakesSwapEventCb( lv_event_t * event ) {
   if( containerBakesRemoval ) {
     lv_event_stop_processing( event );
     lv_obj_delete( containerBakesRemoval );
-    containerBakesRemoval = NULL;  // LVGL bug? pointer is not NULL here
+    containerBakesRemoval = NULL;   // LVGL bug? pointer is not NULL here
+    msgBox = NULL;                  // LVGL bug? pointer is not NULL here
   }
   
   if( NULL != swapBakesCB ) {
@@ -514,10 +519,20 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
         break;
       }
     }
-    if( false == found && BAKE_REMOVE == bakeOperation ) {
-      Serial.println( "Too much elements checked for remove!" );
+    if( false == found ) {  // full list, can't add more
+      Serial.println( "Too much elements checked." );
       lv_obj_remove_state( obj, LV_STATE_CHECKED );
-      // TODO: display GUI message about BAKES_TO_REMOVE_MAX
+      // display GUI messageBox about max checked positions
+      if( NULL == msgBox ) {
+        char msg[50];
+        sprintf( msg, " You can check\n %d positions max.", maxCheckedBakes );
+
+        msgBox = lv_msgbox_create( containerBakesRemoval );
+        lv_msgbox_add_title( msgBox, "Information:" );
+        lv_msgbox_add_text( msgBox, msg );
+        lv_obj_t * btn = lv_msgbox_add_footer_button( msgBox, "Ok" );
+        lv_obj_add_event_cb( btn, msgBoxOkEventCb, LV_EVENT_CLICKED, NULL );
+      }
     }
   } else {
     // checkbox is unchecked, remove idx from list
@@ -530,6 +545,13 @@ static void checkboxChangedEventCb( lv_event_t * event ) {
       }
     }
   }
+}
+
+static void msgBoxOkEventCb( lv_event_t * event ) {
+  lv_obj_t * btn = lv_event_get_target_obj( event );
+  lv_obj_t * mbox = lv_obj_get_parent( lv_obj_get_parent( btn ) );
+  lv_msgbox_close( mbox );
+  msgBox = NULL;    // LVGL bug? pointer is not NULL here
 }
 
 static void rollerCreate( roller_t rType ) {
