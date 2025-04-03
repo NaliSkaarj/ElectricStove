@@ -1,9 +1,14 @@
 # ElectricStove
 Computerized furnace control.
 
+# Hardware
+* LCD_TFT_ILI9488 (480x320) + TOUCH XPT2046 + SDCard
+* Digital thermocouple IC MAX6675
+* Buzzer 5V
+
 # Pins usage
 ### All used pins
-[5, 9, 12, 14, 18, 19, 21, 22, 23, 25, 33]
+Numbers on ESP32_Devkitc_V4: 5, 9, 12, 14, 18, 19, 21, 22, 23, 25, 33
 
 ### LCD
 TFT_MISO    19<br/>
