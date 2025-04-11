@@ -93,7 +93,6 @@ static void heaterHandle() {
 
       case HEATING_PAUSE: {
         // nothing to do
-        Serial.println( "HEATER(Handle): case not handled yet #3\n" );
         break;
       }
     }
@@ -179,7 +178,7 @@ void HEATER_start( void ) {
 
       // case HEATING_PAUSE: use HEATER_pause() for this case
       default: {
-        Serial.println( "HEATER(start): default case invoked" );
+        // nothing to do
         break;
       }
     }
@@ -215,7 +214,7 @@ void HEATER_pause( void ) {
       }
 
       default: {
-        Serial.println( "HEATER(pause): default case invoked" );
+        // nothing to do
         break;
       }
     }
@@ -242,7 +241,7 @@ void HEATER_stop( void ) {
       }
 
       default: {
-        Serial.println( "HEATER(stop): default case invoked" );
+        // nothing to do
         break;
       }
     }

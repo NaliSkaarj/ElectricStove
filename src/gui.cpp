@@ -1081,7 +1081,6 @@ static void blinkTimeCurrent( lv_timer_t * timer ) {//( TimerHandle_t timer ) {
   ( void )isVisible;  // suppress CppCheck warning (variableScope)
 
   if( NULL != labelCurrentTimeVal ) {
-    Serial.println("BLINK_TIME_TOGGLE");
     if( isVisible ){
       lv_obj_set_style_text_color( labelCurrentTimeVal, {0xD3,0xD3,0xD3}, 0 );
       isVisible = false;
@@ -1097,8 +1096,6 @@ static void blinkScreenFrame( lv_timer_t * timer ) {
   static bool isVisible = true;
 
   ( void )isVisible;  // suppress CppCheck warning (variableScope)
-
-  Serial.println("BLINK_FRAME_TOGGLE");
 
   if( isVisible ){
     lv_style_set_bg_opa( &styleScreenFrame, LV_OPA_30 );
