@@ -68,9 +68,9 @@ uint32_t CONF_getBakeTemp( uint32_t idx, uint32_t step );
  * idx      - index for particular bake on the list (count from 0)
  * step     - step for which value will be returned (count from 0)
  * 
- * return   - time (in seconds)
+ * return   - time (in seconds), negative value mean special event
  */
-uint32_t CONF_getBakeTime( uint32_t idx, uint32_t step );
+int32_t CONF_getBakeTime( uint32_t idx, uint32_t step );
 
 /**
  * Get specified bake's name

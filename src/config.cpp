@@ -318,7 +318,7 @@ uint32_t CONF_getBakeTemp( uint32_t idx, uint32_t step ) {
   return bakeList[ idx ].step[ step ].temp;
 }
 
-uint32_t CONF_getBakeTime( uint32_t idx, uint32_t step ) {
+int32_t CONF_getBakeTime( uint32_t idx, uint32_t step ) {
   if( NULL == bakeList || bakesCount <= idx || BAKE_MAX_STEPS <= step ) {
     return 0;
   }
