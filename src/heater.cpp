@@ -268,17 +268,16 @@ float HEATER_getCurrentTemperature( void ) {
 }
 
 uint32_t HEATER_getTimeRemaining() {
-  uint32_t result = 0;
+  int32_t result = 0;
 
   if( false == initialized ) {
-    return result;
+    return 0;
   }
 
   if( pdTRUE == xSemaphoreTake( xSemaphore, portMAX_DELAY ) ) {
     switch( heaterState ) {
       case HEATING_STOP: {
         // nothing to do
-        result = 0;
         break;
       }
 
@@ -298,7 +297,7 @@ uint32_t HEATER_getTimeRemaining() {
     Serial.println( "HEATER(getTimeRemaining): couldn't take semaphore " + (String)failSemaphoreCounter + " times" );
   }
 
-  return result;
+  return ( 0 > result ) ? 0 : (uint32_t)result;
 }
 
 uint8_t HEATER_getCurrentPower() {
