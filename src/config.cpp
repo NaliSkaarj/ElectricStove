@@ -205,7 +205,7 @@ static void loadBakesFromFlash() {
   bakesCount = doc["count"];
 
   // allocate memory for bakeList
-  bakeList = (bake_t *)malloc( sizeof( bake_t ) * bakesCount );
+  bakeList = (bake_t *)calloc( bakesCount, sizeof( bake_t ) );
   if( NULL == bakeList ) {
     Serial.printf( "CONF(loadBakesFromFlash) Malloc failed for bakeList\n" );
     return;
