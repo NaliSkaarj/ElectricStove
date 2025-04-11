@@ -11,10 +11,14 @@ heater_state heaterStateRequested = STATE_IDLE;
 unsigned long currentTime, lastCurrentTime, next10S, next1S, next100mS;
 static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
+static int32_t eventCode;
+static uint32_t eventValue;
 static xTimerHandle xTimer;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
 static uint32_t bakeIdx;
+static uint32_t bakeStep;             // currently running step (from Bake's curve) count from 0
+static bool specialEvent = false;
 // populate GUI options
 static setting_t settings[] = {     // preserve order according to optionType enum
   { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
@@ -61,10 +65,31 @@ static void heatingPause() {
 
 static void bakePickup( uint32_t idx, bool longPress ) {
   if( STATE_IDLE == heaterState ) {
+    int32_t tmp_targetHeatingTime;
     bakeIdx = idx;
+    bakeStep = 0;     // start from first step in "bake's curve"
 
-    targetHeatingTemp = CONF_getBakeTemp( bakeIdx, 0 );
-    targetHeatingTime = SECONDS_TO_MILISECONDS( CONF_getBakeTime( bakeIdx, 0 ) );
+    targetHeatingTime = 0;
+
+    targetHeatingTemp = (uint16_t)CONF_getBakeTemp( bakeIdx, bakeStep );
+
+    tmp_targetHeatingTime = CONF_getBakeTime( bakeIdx, bakeStep );
+    if( 0 < tmp_targetHeatingTime ) {
+      targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( tmp_targetHeatingTime );
+    } else if( 0 > tmp_targetHeatingTime ) {  // special case: first step is an event
+      specialEvent = true;
+      targetHeatingTemp = 0;
+      eventCode = tmp_targetHeatingTime;
+      eventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
+    } else {
+      targetHeatingTemp = 0;
+      Serial.printf( "CONTROLLER(bakePickup): Bake item incorrect!\n" );
+      BUZZ_Add( 0, 80, 100, 10 );
+      GUI_SetTargetTemp( 0 );
+      GUI_SetTargetTime( 0 );
+      return;
+    }
+
     GUI_SetTargetTemp( targetHeatingTemp );
     GUI_SetTargetTime( targetHeatingTime );
     GUI_setBakeName( CONF_getBakeName( bakeIdx ) );
@@ -202,10 +227,27 @@ static void myTimerCallback( xTimerHandle pxTimer )
 }
 
 static void heatingDone( void ) {
+  int32_t tmp_targetHeatingTime;
+
+  // handle next step in bake curve (if exist)
+  bakeStep++;
+  tmp_targetHeatingTime = CONF_getBakeTime( bakeIdx, bakeStep );
+
+  if( 0 == tmp_targetHeatingTime ) {  // no next step, finish heating process
   BUZZ_Add( 0, 1000, 200, 5 );
-  ///TODO: handle case when current phase of heating process is finished and next phase can be performed
   OTA_LogWrite( "Heating done!\n" );
   heaterStateRequested = STATE_STOP_REQUESTED;
+  } else if( 0 < tmp_targetHeatingTime ) {  // there is next step, handle it
+    targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( tmp_targetHeatingTime );
+    targetHeatingTemp = (uint16_t)CONF_getBakeTemp( bakeIdx, bakeStep );
+    heaterStateRequested = STATE_NEXTSTEP_REQUESTED;
+  } else {                    // next step is an event
+    specialEvent = true;
+    targetHeatingTime = 0;
+    targetHeatingTemp = 0;
+    eventCode = tmp_targetHeatingTime;
+    eventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
+  }
 }
 
 static void otaStateChanged( bool otaState ) {
@@ -371,6 +413,26 @@ void loop() {
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
+      }
+      else if( STATE_NEXTSTEP_REQUESTED == heaterStateRequested ) {
+        if( MAX_ALLOWED_TIME < targetHeatingTime ) {
+          targetHeatingTime = MAX_ALLOWED_TIME;
+        }
+        if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
+          targetHeatingTemp = MAX_ALLOWED_TEMP;
+        }
+        if( MIN_ALLOWED_TEMP > targetHeatingTemp ) {
+          targetHeatingTemp = MIN_ALLOWED_TEMP;
+        }
+
+        GUI_SetTargetTime( targetHeatingTime );
+        GUI_SetTargetTemp( targetHeatingTemp );
+
+        HEATER_setTime( targetHeatingTime );
+        HEATER_setTemperature( (uint16_t)targetHeatingTemp );
+        HEATER_start();
+
+        heaterStateRequested = STATE_IDLE;
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause();
