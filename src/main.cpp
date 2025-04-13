@@ -19,6 +19,9 @@ static uint32_t bakeCount;
 static uint32_t bakeIdx;
 static uint32_t bakeStep;             // currently running step (from Bake's curve) count from 0
 static bool specialEvent = false;
+static volatile bool heatingDoneTriggered = false;
+static volatile bool otaStateChangedTriggered = false;
+static volatile bool otaStateStatus;
 // populate GUI options
 static setting_t settings[] = {     // preserve order according to optionType enum
   { "Buzzer activation", OPT_VAL_BOOL, 1, NULL },
@@ -219,6 +222,7 @@ static void swapBakes( const uint8_t * list ) {
   }
 }
 
+// called from outside
 static void myTimerCallback( xTimerHandle pxTimer ) 
 {
   // GUI_SetTabActive( 1 );
@@ -226,7 +230,12 @@ static void myTimerCallback( xTimerHandle pxTimer )
   BUZZ_Add( 0, 100, 100, 5 );
 }
 
-static void heatingDone( void ) {
+// called from outside
+static void heatingDone() {
+  heatingDoneTriggered = true;
+}
+
+static void heatingDoneHandle() {
   int32_t tmp_targetHeatingTime;
 
   // handle next step in bake curve (if exist)
@@ -251,8 +260,13 @@ static void heatingDone( void ) {
 }
 
 static void otaStateChanged( bool otaState ) {
-  Serial.printf( "WiFi changed state to: %s\n", otaState?"connected":"disconnected" );
-  settings[ OPTION_OTA ].currentValue.bValue = otaState;
+  otaStateChangedTriggered = true;
+  otaStateStatus = otaState;
+}
+
+static void otaStateChangedHandle() {
+  Serial.printf( "WiFi changed state to: %s\n", otaStateStatus?"connected":"disconnected" );
+  settings[ OPTION_OTA ].currentValue.bValue = otaStateStatus;
   // update GUI icons
   GUI_setWiFiIcon( settings[ OPTION_OTA ].currentValue.bValue );
   GUI_updateOption( settings[ OPTION_OTA ] );
@@ -472,6 +486,16 @@ void loop() {
     default: {
       break;
     }
+  }
+
+  // handle events from outside
+  if( heatingDoneTriggered ) {
+    heatingDoneHandle();
+    heatingDoneTriggered = false;
+  }
+  if( otaStateChangedTriggered ) {
+    otaStateChangedHandle();
+    otaStateChangedTriggered = false;
   }
 
   vTaskDelay( 10 / portTICK_PERIOD_MS );
