@@ -244,7 +244,7 @@ static void heatingDoneHandle() {
 
   if( 0 == tmp_targetHeatingTime ) {  // no next step, finish heating process
   BUZZ_Add( 0, 1000, 200, 5 );
-  OTA_LogWrite( "Heating done!\n" );
+    Serial.println( "Heating done!" );
   heaterStateRequested = STATE_STOP_REQUESTED;
   } else if( 0 < tmp_targetHeatingTime ) {  // there is next step, handle it
     targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( tmp_targetHeatingTime );
@@ -427,6 +427,7 @@ void loop() {
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
+        bakePickup( bakeIdx, false );       // prepare for next round
       }
       else if( STATE_NEXTSTEP_REQUESTED == heaterStateRequested ) {
         if( MAX_ALLOWED_TIME < targetHeatingTime ) {
@@ -466,10 +467,11 @@ void loop() {
         GUI_setOperationButtons( BUTTONS_START );
         GUI_setTimeTempChangeAllowed( true );
         GUI_setBlinkScreenFrame( false );
-        GUI_setBlinkTimeCurrent( false );    // stop blinking (stop heating)
+        GUI_setBlinkTimeCurrent( false );   // stop blinking (stop heating)
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
+        bakePickup( bakeIdx, false );       // prepare for next round
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause(); // continue processing (same API function for 'unpause')
