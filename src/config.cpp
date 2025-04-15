@@ -325,6 +325,13 @@ int32_t CONF_getBakeTime( uint32_t idx, uint32_t step ) {
   return bakeList[ idx ].step[ step ].time;
 }
 
+uint32_t CONF_getBakeStepCount( uint32_t idx ) {
+  if( NULL == bakeList || bakesCount <= idx ) {
+    return 0;
+  }
+  return bakeList[ idx ].stepCount;
+}
+
 char * CONF_getBakeName( uint32_t idx ) {
   if( NULL == bakeList || bakesCount <= idx ) {
     return 0;

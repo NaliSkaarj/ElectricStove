@@ -73,6 +73,14 @@ uint32_t CONF_getBakeTemp( uint32_t idx, uint32_t step );
 int32_t CONF_getBakeTime( uint32_t idx, uint32_t step );
 
 /**
+ * Get steps count for specified bake
+ * idx      - index for particular bake on the list (count from 0)
+ * 
+ * return   - steps count
+ */
+uint32_t CONF_getBakeStepCount( uint32_t idx );
+
+/**
  * Get specified bake's name
  * idx      - index for particular bake on the list (count from 0)
  * 

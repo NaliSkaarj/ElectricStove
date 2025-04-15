@@ -104,7 +104,7 @@ static void bakePickup( uint32_t idx, bool longPress ) {
       heaterStateRequested = STATE_START_REQUESTED;
     }
 
-    Serial.printf( "Bake pickup[%d]:\"%s\"; Time:%d[ms], Temp:%d[*C]\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), targetHeatingTime, targetHeatingTemp );
+    Serial.printf( "Bake pickup[%d]:\"%s\"; Steps:%d\n", bakeIdx + 1, CONF_getBakeName( bakeIdx ), CONF_getBakeStepCount( bakeIdx ) );
   } else {
     BUZZ_Add( 0, 80, 100, 3 );
   }
