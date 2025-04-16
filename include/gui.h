@@ -14,6 +14,7 @@ typedef enum operationButton {
     BUTTONS_START = 1,
     BUTTONS_PAUSE_STOP,
     BUTTONS_CONTINUE_STOP,
+    BUTTONS_STOP,
     BUTTONS_MAX_COUNT
 } buttonsGroup_t;
 

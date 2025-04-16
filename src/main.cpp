@@ -8,11 +8,13 @@
 
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
+event_state eventState = EVENT_STATE_IDLE;
 unsigned long currentTime, lastCurrentTime, next10S, next1S, next100mS, eventHandlingStart;
 static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
 static int32_t eventCode;
 static uint32_t eventValue;
+static uint32_t eventBuzzing;
 static xTimerHandle xTimer;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
@@ -397,6 +399,7 @@ void loop() {
         // Serial.printf("START: specialEvent=%d, eventCode=%d, eventValue=%d\n", (int)specialEvent, eventCode, eventValue );
         if( specialEvent ) {      // special case: first step is an event
           specialEvent = false;
+          eventState = EVENT_STATE_BEGIN;
           heaterState = STATE_SPECIAL_EVENT;
           eventHandlingStart = currentTime;
         }
@@ -476,6 +479,7 @@ void loop() {
       }
       else if( specialEvent ) {
         specialEvent = false;
+        eventState = EVENT_STATE_BEGIN;
         heaterState = STATE_SPECIAL_EVENT;
         eventHandlingStart = currentTime;
       }
@@ -522,17 +526,59 @@ void loop() {
           break;
         }
         case EVENT_SOUND: {
-          ///TODO: play a sound and go to next step immediately
           Serial.println( "Handle EVENT_SOUND and go to next step" );
+          BUZZ_Add( BUZZ_EVENT_SOUND );
           heaterState = STATE_HEATING;
           heatingDoneHandle();
           break;
         }
         case EVENT_END: {
-          ///TODO: turn off heating and beep waiting for user
-          Serial.println( "Handle EVENT_END and go to STATE_IDLE" );
-          heaterState = STATE_IDLE;
-          heatingDoneHandle();
+          switch( eventState ) {
+            case EVENT_STATE_BEGIN: {
+              Serial.println( "Handle EVENT_END..." );
+
+              GUI_setOperationButtons( BUTTONS_STOP );
+              HEATER_stop();
+              eventBuzzing = BUZZ_Add( BUZZ_EVENT_END );
+              eventHandlingStart = currentTime;
+              eventState = EVENT_STATE_HANDLING;
+
+              break;
+            }
+            case EVENT_STATE_HANDLING: {
+              // 1 minute passed, activate new buzzing
+              if( (eventHandlingStart + BUZZ_EVENT_END_PERIOD) < currentTime ) {
+                eventBuzzing = BUZZ_Add( BUZZ_EVENT_END );
+                eventHandlingStart += BUZZ_EVENT_END_PERIOD;
+
+                if( BUZZ_EVENT_END_PERIOD > eventHandlingStart ) {    // just in case of time overflow (after ca. 50 days)
+                  heaterStateRequested = STATE_STOP_REQUESTED;
+                }
+              }
+
+              if( STATE_STOP_REQUESTED == heaterStateRequested ) {
+                eventState = EVENT_STATE_END;
+              }
+
+              break;
+            }
+            case EVENT_STATE_END: {
+              Serial.println( "...and go to STATE_IDLE" );
+              BUZZ_Delete( eventBuzzing );
+
+              GUI_setOperationButtons( BUTTONS_START );
+              GUI_setTimeTempChangeAllowed( true );
+              GUI_setBlinkScreenFrame( false );
+              GUI_setBlinkTimeCurrent( false );
+
+              heaterStateRequested = STATE_IDLE;
+              heaterState = STATE_IDLE;
+              eventState = EVENT_STATE_IDLE;
+              bakePickup( bakeIdx, false );       // prepare for next round
+
+              break;
+            }
+          }
           break;
         }
         default: {

@@ -5,6 +5,9 @@
 #define SECONDS_TO_MILISECONDS(a)   ((a) * 1000)
 #define MINUTES_TO_SECONDS(a)       ((a) * 60)
 #define HOURS_TO_SECONDS(a)         (MINUTES_TO_SECONDS((a) * 60))
+#define BUZZ_EVENT_SOUND            1000, 200, 3
+#define BUZZ_EVENT_END              100, 400, 4
+#define BUZZ_EVENT_END_PERIOD       60000               // 1 minute [ms]
 
 typedef enum heater_state {
     STATE_IDLE = 0,
@@ -39,5 +42,13 @@ enum specialEvents {
     EVENT_END = -4,         // end of heating, beep once for a while until stopped by user
     EVENT_COUNT
 };
+
+typedef enum {
+    EVENT_STATE_IDLE = 0,
+    EVENT_STATE_BEGIN,
+    EVENT_STATE_HANDLING,
+    EVENT_STATE_END,
+    EVENT_STATE_COUNT
+} event_state;
 
 #endif  // _HELPER_H

@@ -742,6 +742,23 @@ static void createOperatingButtons() {
     lv_label_set_text( labelBtnStart, "START" );
     lv_obj_center( labelBtnStart );
   }
+  else if( BUTTONS_STOP == buttonsGroup ) {
+    lv_obj_t * btnStop = lv_button_create( containerButtons );
+    lv_obj_set_style_width( btnStop, lv_obj_get_style_width( containerButtons, LV_PART_MAIN ) - 3, 0 );
+    lv_obj_set_style_height( btnStop, lv_obj_get_style_height( containerButtons, LV_PART_MAIN ) - 10, 0 );
+    lv_obj_set_style_bg_color( btnStop, {0xF0, 0x20, 0x20}, 0 );
+    lv_obj_set_style_outline_width( btnStop, 2, LV_PART_MAIN );
+    lv_obj_set_style_outline_color( btnStop, lv_color_hex3(0x000), LV_PART_MAIN );
+    lv_obj_set_style_outline_opa( btnStop, LV_OPA_70, LV_PART_MAIN );
+    lv_obj_set_style_shadow_width( btnStop, 0, LV_PART_MAIN );
+    lv_obj_remove_flag( btnStop, LV_OBJ_FLAG_PRESS_LOCK );
+    lv_obj_align( btnStop, LV_ALIGN_CENTER, 0, 0 );
+    lv_obj_add_event_cb( btnStop, btnStopEventCb, LV_EVENT_CLICKED, NULL );
+
+    lv_obj_t * labelBtnStop = lv_label_create( btnStop );
+    lv_label_set_text( labelBtnStop, "STOP" );
+    lv_obj_center( labelBtnStop );
+  }
   else if( ( BUTTONS_PAUSE_STOP == buttonsGroup ) || ( BUTTONS_CONTINUE_STOP == buttonsGroup ) ) {
     lv_obj_t * btnPause = lv_button_create( containerButtons );
     lv_obj_t * btnStop = lv_button_create( containerButtons );
