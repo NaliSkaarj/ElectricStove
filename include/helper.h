@@ -5,11 +5,13 @@
 #define SECONDS_TO_MILISECONDS(a)   ((a) * 1000)
 #define MINUTES_TO_SECONDS(a)       ((a) * 60)
 #define HOURS_TO_SECONDS(a)         (MINUTES_TO_SECONDS((a) * 60))
+#define BUZZ_EVENT_PREHEATING       100, 10000, INT32_MAX
 #define BUZZ_EVENT_PAUSE            100, 10000, INT32_MAX
 #define BUZZ_EVENT_SOUND            1000, 200, 3
 #define BUZZ_EVENT_END              100, 400, 4
-#define BUZZ_EVENT_END_PERIOD       60000               // 1 minute [ms]
-#define EVENT_PAUSE_MAX_TIME        (15 * 60 * 1000)    // 15 minutes [ms] max (for safety)
+#define BUZZ_EVENT_END_PERIOD       60000                   // 1 minute [ms]
+#define EVENT_PAUSE_MAX_TIME        (15 * 60 * 1000)        // 15 minutes [ms] max (for safety)
+#define EVENT_PREHEATING_MAX_TIME   (30 * 60 * 1000)        // 30 minutes [ms] max (for safety)
 
 typedef enum heater_state {
     STATE_IDLE = 0,

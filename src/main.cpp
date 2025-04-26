@@ -512,10 +512,65 @@ void loop() {
     case STATE_SPECIAL_EVENT: {
       switch( eventCode ) {
         case EVENT_PREHEATING: {
-          ///TODO: start heating and wait for target temp reached
-          Serial.println( "Handle EVENT_PREHEATING and go to next step" );
-          heaterState = STATE_HEATING;
-          heatingDoneHandle();
+          switch( eventState ) {
+            case EVENT_STATE_BEGIN: {
+              Serial.println( "Handle EVENT_PREHEATING..." );
+
+              targetHeatingTemp = eventValue;
+              if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
+                targetHeatingTemp = MAX_ALLOWED_TEMP;
+              }
+              if( MIN_ALLOWED_TEMP > targetHeatingTemp ) {
+                targetHeatingTemp = MIN_ALLOWED_TEMP;
+              }
+
+              GUI_SetTargetTime( 0 );
+              GUI_SetTargetTemp( targetHeatingTemp );
+
+              HEATER_setTime( EVENT_PREHEATING_MAX_TIME );
+              HEATER_setTemperature( (uint16_t)targetHeatingTemp );
+              HEATER_start();
+
+              GUI_setOperationButtons( BUTTONS_STOP );
+              GUI_setTimeTempChangeAllowed( false );
+              GUI_setBlinkScreenFrame( true );
+              GUI_setBlinkTimeCurrent( true );        // indicate we're in preheating mode
+
+              eventBuzzing = BUZZ_Add( BUZZ_EVENT_PREHEATING );
+              eventState = EVENT_STATE_HANDLING;
+
+              break;
+            }
+            case EVENT_STATE_HANDLING: {
+              if( STATE_STOP_REQUESTED == heaterStateRequested ) {
+                Serial.println( "...and go to STOP immediately" );
+                BUZZ_Delete( eventBuzzing );
+                heaterState = STATE_HEATING;    // preheating will be stopped in next cycle
+                eventState = EVENT_STATE_IDLE;
+              }
+
+              // target temp reached
+              if( HEATER_getCurrentTemperature() >= targetHeatingTemp ) {
+                Serial.println( "Target temp reached." );
+                eventState = EVENT_STATE_END;
+              }
+
+              break;
+            }
+            case EVENT_STATE_END: {
+              Serial.println( "...go to PAUSE event and wait for user action" );
+              BUZZ_Delete( eventBuzzing );
+              HEATER_stop();
+
+              // prepare for EVENT_PAUSE
+              heaterStateRequested = STATE_IDLE;
+              eventCode = EVENT_PAUSE;
+              eventValue = targetHeatingTemp;
+              eventState = EVENT_STATE_BEGIN;
+
+              break;
+            }
+          }
           break;
         }
         case EVENT_PAUSE: {
@@ -544,7 +599,6 @@ void loop() {
               GUI_setBlinkTimeCurrent( true );        // indicate we're in pause mode
 
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_PAUSE );
-              // eventHandlingStart = currentTime;
               eventState = EVENT_STATE_HANDLING;
 
               break;
@@ -653,10 +707,10 @@ void loop() {
 
   // handle callbacks (instead of using semaphores wait for flags to be set from outside)
   if( heatingDoneTriggered ) {
-    // special case: time's up for EVENT_PAUSE >> go to stop process
+    // special case: time's up for EVENT_PAUSE/EVENT_PREHEATING >> go to stop process
     if( STATE_SPECIAL_EVENT == heaterState
-    && EVENT_PAUSE == eventCode ) {
-      Serial.println( "Time's up for PAUSE event! Go to STOP." );
+    && ( EVENT_PREHEATING == eventCode || EVENT_PAUSE == eventCode ) ) {
+      Serial.println( "Time's up for PAUSE/PREHEATING event! Go to STOP." );
       BUZZ_Delete( eventBuzzing );
       BUZZ_Add( 500, 500, 200, 10 );
       heaterState = STATE_HEATING;
