@@ -44,6 +44,7 @@ enum specialEvents {
     EVENT_PAUSE = -2,       // keep current temp and wait for user
     EVENT_SOUND = -3,       // just play a sound
     EVENT_END = -4,         // end of heating, beep once for a while until stopped by user
+    EVENT_TIMER = -5,
     EVENT_COUNT
 };
 

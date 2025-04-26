@@ -692,6 +692,31 @@ void loop() {
           }
           break;
         }
+        case EVENT_TIMER: {
+          Serial.println( "Handle EVENT_TIMER..." );
+
+          targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( eventValue );
+          if( MAX_ALLOWED_TIME < targetHeatingTime ) {
+            targetHeatingTime = MAX_ALLOWED_TIME;
+          }
+
+          GUI_SetTargetTime( targetHeatingTime );
+          GUI_SetTargetTemp( 0 );
+
+          HEATER_setTime( targetHeatingTime );
+          HEATER_setTemperature( 0 );
+          HEATER_start();
+
+          GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
+          GUI_setTimeTempChangeAllowed( false );
+          GUI_setBlinkScreenFrame( true );
+          GUI_setBlinkTimeCurrent( false );
+
+          heaterState = STATE_HEATING;
+          heaterStateRequested = STATE_IDLE;
+
+          break;
+        }
         default: {
           Serial.printf( "Invalid event code: %d\n", eventCode );
           BUZZ_Add( 5000 );
