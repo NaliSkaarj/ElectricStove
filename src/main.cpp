@@ -9,13 +9,12 @@
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
 event_state eventState = EVENT_STATE_IDLE;
-unsigned long currentTime, lastCurrentTime, next10S, next1S, next100mS, eventHandlingStart;
+unsigned long currentTime, lastCurrentTime, next1S, next100mS, eventHandlingStart;
 static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
 static int32_t eventCode;
 static uint32_t eventValue;
 static uint32_t eventBuzzing;
-static xTimerHandle xTimer;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
 static uint32_t bakeIdx;
@@ -228,14 +227,6 @@ static void swapBakes( const uint8_t * list ) {
 }
 
 // called from outside
-static void myTimerCallback( xTimerHandle pxTimer ) 
-{
-  // GUI_SetTabActive( 1 );
-  Serial.println( "Timer callback function executed" );
-  BUZZ_Add( 0, 100, 100, 5 );
-}
-
-// called from outside
 static void heatingDone() {
   heatingDoneTriggered = true;
 }
@@ -325,11 +316,7 @@ void setup() {
   settings[ OPTION_SAVE ].optionCallback = storeSettings;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
-  // test timer feature
-  xTimer = xTimerCreate( "myTimer", 10000, pdFALSE, NULL, myTimerCallback );
-  xTimerStart( xTimer, 5000 );
-
-  currentTime = next10S = next1S = millis();
+  currentTime = next1S = millis();
   lastCurrentTime = currentTime - 10;   // first call with 10ms
 }
 
@@ -376,20 +363,7 @@ void loop() {
   // handle stuff every 1 second
   if( currentTime >= next1S ) {
     Serial.print( "*" );
-    OTA_LogWrite( "?" );
     next1S += 1000;
-  }
-
-  // handle stuff every 10 second
-  if( currentTime >= next10S ) {
-    next10S += 10000;
-    BUZZ_Add( 100 );
-    // Serial.println( ((String)CONF_getOption( BUZZER_MENU )).c_str() );
-    // Serial.println( ((String)CONF_getOption( BUZZER_HEATING )).c_str() );
-    // Serial.println( ((String)CONF_getOption( OTA_ACTIVE )).c_str() );
-    // for( int x=0; x<bakeCount; x++) {
-    //   Serial.printf( "bakeNames[%d]: %s\n", x, bakeNames+x );
-    // }
   }
 
   switch( heaterState ) {
@@ -747,6 +721,7 @@ void loop() {
 
     heatingDoneTriggered = false;
   }
+
   if( otaStateChangedTriggered ) {
     otaStateChangedHandle();
     otaStateChangedTriggered = false;
