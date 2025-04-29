@@ -19,6 +19,7 @@ static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
 static uint32_t bakeIdx;
 static uint32_t bakeStep;             // currently running step (from Bake's curve) count from 0
+static bool manualOperation;
 static bool specialEvent = false;
 static volatile bool heatingDoneTriggered = false;
 static volatile bool otaStateChangedTriggered = false;
@@ -34,6 +35,7 @@ static setting_t settings[] = {     // preserve order according to optionType en
 
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
+  manualOperation = true;
 
   if( MAX_ALLOWED_TIME < targetHeatingTime ) {
     targetHeatingTime = MAX_ALLOWED_TIME;
@@ -44,6 +46,7 @@ static void updateTime( uint32_t time ) {
 
 static void updateTemp( uint16_t temp ) {
   targetHeatingTemp = temp;
+  manualOperation = true;
 
   if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
     targetHeatingTemp = MAX_ALLOWED_TEMP;
@@ -72,6 +75,7 @@ static void bakePickup( uint32_t idx, bool longPress ) {
     int32_t tmp_targetHeatingTime;
     bakeIdx = idx;
     bakeStep = 0;     // start from first step in "bake's curve"
+    manualOperation = false;
 
     targetHeatingTime = 0;
     specialEvent = false;
@@ -234,13 +238,17 @@ static void heatingDone() {
 static void heatingDoneHandle() {
   int32_t tmp_targetHeatingTime;
 
-  // handle next step in bake curve (if exist)
-  bakeStep++;
-  tmp_targetHeatingTime = CONF_getBakeTime( bakeIdx, bakeStep );
+  if( manualOperation ) {
+    tmp_targetHeatingTime = 0;    // force end of heating
+  } else {
+    // handle next step in bake curve (if exist)
+    bakeStep++;
+    tmp_targetHeatingTime = CONF_getBakeTime( bakeIdx, bakeStep );
+    Serial.printf("Handling next step (time=%d)\n", tmp_targetHeatingTime );
+  }
   specialEvent = false;
   eventCode = 0;
   eventValue = 0;
-  Serial.printf("Handling next step (time=%d)\n", tmp_targetHeatingTime );
 
   if( 0 == tmp_targetHeatingTime ) {  // no next step, finish heating process
     BUZZ_Add( 0, 1000, 200, 5 );
@@ -259,6 +267,7 @@ static void heatingDoneHandle() {
   }
 }
 
+// called from outside
 static void otaStateChanged( bool otaState ) {
   otaStateChangedTriggered = true;
   otaStateStatus = otaState;
@@ -285,6 +294,7 @@ void setup() {
   HEATER_Init( GUI_getSPIinstance() );
   HEATER_setCallback( heatingDone );
   CONF_Init( GUI_getSPIinstance() );
+  manualOperation = true;
 
   // GUI callbacks
   GUI_setTimeCallback( updateTime );      // time will be updated when changed
@@ -419,7 +429,9 @@ void loop() {
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
-        bakePickup( bakeIdx, false );       // prepare for next round
+        if( false == manualOperation ) {
+          bakePickup( bakeIdx, false );       // prepare for next round
+        }
       }
       else if( STATE_NEXTSTEP_REQUESTED == heaterStateRequested ) {
         if( MAX_ALLOWED_TIME < targetHeatingTime ) {
@@ -469,7 +481,9 @@ void loop() {
 
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
-        bakePickup( bakeIdx, false );       // prepare for next round
+        if( false == manualOperation ) {
+          bakePickup( bakeIdx, false );       // prepare for next round
+        }
       }
       else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
         HEATER_pause(); // continue processing (same API function for 'unpause')
