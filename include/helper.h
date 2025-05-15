@@ -6,7 +6,7 @@
 #define MINUTES_TO_SECONDS(a)       ((a) * 60)
 #define HOURS_TO_SECONDS(a)         (MINUTES_TO_SECONDS((a) * 60))
 #define BUZZ_EVENT_PREHEATING       100, 10000, INT32_MAX
-#define BUZZ_EVENT_PAUSE            100, 10000, INT32_MAX
+#define BUZZ_EVENT_PAUSE            1000, 9000, UINT32_MAX
 #define BUZZ_EVENT_SOUND            1000, 200, 3
 #define BUZZ_EVENT_END              100, 400, 4
 #define BUZZ_EVENT_END_PERIOD       60000                   // 1 minute [ms]
