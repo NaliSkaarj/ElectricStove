@@ -500,6 +500,8 @@ void loop() {
     case STATE_SPECIAL_EVENT: {
       switch( eventCode ) {
         case EVENT_PREHEATING: {
+          static bool targetTempReached;
+
           switch( eventState ) {
             case EVENT_STATE_BEGIN: {
               Serial.println( "Handle EVENT_PREHEATING..." );
@@ -524,6 +526,7 @@ void loop() {
               GUI_setBlinkScreenFrame( true );
               GUI_setBlinkTimeCurrent( true );        // indicate we're in preheating mode
 
+              targetTempReached = false;
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_PREHEATING );
               eventState = EVENT_STATE_HANDLING;
 
@@ -536,25 +539,32 @@ void loop() {
                 heaterState = STATE_HEATING;    // preheating will be stopped in next cycle
                 eventState = EVENT_STATE_IDLE;
               }
+              else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {  // CONTINUE was pressed
+                eventState = EVENT_STATE_END;
+              }
 
               // target temp reached
-              if( HEATER_getCurrentTemperature() >= targetHeatingTemp ) {
+              if( !targetTempReached && HEATER_getCurrentTemperature() >= targetHeatingTemp ) {
                 Serial.println( "Target temp reached." );
-                eventState = EVENT_STATE_END;
+                targetTempReached = true;
+
+                GUI_setOperationButtons( BUTTONS_CONTINUE_STOP );
+                BUZZ_Delete( eventBuzzing );
+                eventBuzzing = BUZZ_Add( BUZZ_EVENT_TEMP_REACHED );
               }
 
               break;
             }
             case EVENT_STATE_END: {
               Serial.println( "...go to PAUSE event and wait for user action" );
+              GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
               BUZZ_Delete( eventBuzzing );
               HEATER_stop();
 
-              // prepare for EVENT_PAUSE
               heaterStateRequested = STATE_IDLE;
-              eventCode = EVENT_PAUSE;
-              eventValue = targetHeatingTemp;
-              eventState = EVENT_STATE_BEGIN;
+              heaterState = STATE_HEATING;
+              eventState = EVENT_STATE_IDLE;
+              heatingDoneHandle();        // go to next step
 
               break;
             }
