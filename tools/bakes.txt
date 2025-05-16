@@ -1,0 +1,1 @@
+{"count":1,"data":[{"name":"Chleb #1","stepCount":6,"step":[{"temp":230,"time":-1},{"temp":230,"time":600},{"temp":0,"time":-3},{"temp":180,"time":1800},{"temp":180,"time":-2},{"temp":180,"time":1800}]}]}
