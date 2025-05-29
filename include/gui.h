@@ -5,10 +5,13 @@
 #include "SPI.h"
 #include "lvgl.h"
 
-#define BAKES_TO_REMOVE_MAX     5  // how much elements can be removed from bakes list at once
-#define MINUTE_TO_MILLIS(m)     ((m) * 60 * 1000)
-#define HOUR_TO_MILLIS(h)       ((h) * 60 * 60 * 1000)
-#define MAX_ALLOWED_TIME        ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )   // 100 hours max
+#define BAKES_TO_REMOVE_MAX         5  // how much elements can be removed from bakes list at once
+#define MINUTE_TO_MILLIS(m)         ((m) * 60 * 1000)
+#define HOUR_TO_MILLIS(h)           ((h) * 60 * 60 * 1000)
+#define MAX_ALLOWED_TIME            ( HOUR_TO_MILLIS(99) + MINUTE_TO_MILLIS(59) )   // 100 hours max
+#define BLINK_TIMECURRENT_FREQ      500
+#define BLINK_SCREENFRAME_FREQ      500
+#define DEFAULT_TAB_AFTER_MS        10000
 
 typedef enum operationButton {
     BUTTONS_START = 1,

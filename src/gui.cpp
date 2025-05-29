@@ -1157,11 +1157,11 @@ void GUI_Init() {
 
   setScreenMain();
 
-  timer_blinkTimeCurrent = lv_timer_create( blinkTimeCurrent, 250,  NULL );
+  timer_blinkTimeCurrent = lv_timer_create( blinkTimeCurrent, BLINK_TIMECURRENT_FREQ,  NULL );
   lv_timer_pause( timer_blinkTimeCurrent );
-  timer_blinkScreenFrame = lv_timer_create( blinkScreenFrame, 500,  NULL );
+  timer_blinkScreenFrame = lv_timer_create( blinkScreenFrame, BLINK_SCREENFRAME_FREQ,  NULL );
   lv_timer_pause( timer_blinkScreenFrame );
-  timer_setDefaultTab = lv_timer_create( setDefaultTab, 10000,  NULL );
+  timer_setDefaultTab = lv_timer_create( setDefaultTab, DEFAULT_TAB_AFTER_MS,  NULL );
   lv_timer_enable( timer_setDefaultTab );
 }
 
