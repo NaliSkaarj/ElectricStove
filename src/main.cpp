@@ -471,6 +471,13 @@ void loop() {
       break;
     }
     case STATE_HEATING_PAUSE: {
+      static bool buzzerActive = false;
+      if( !buzzerActive ) {
+        BUZZ_Delete( eventBuzzing );  // just in case it exist
+        eventBuzzing = BUZZ_Add( BUZZ_EVENT_PAUSE );
+        buzzerActive = true;
+      }
+
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
         GUI_setOperationButtons( BUTTONS_START );
@@ -478,6 +485,8 @@ void loop() {
         GUI_setBlinkScreenFrame( false );
         GUI_setBlinkTimeCurrent( false );   // stop blinking (stop heating)
 
+        buzzerActive = false;
+        BUZZ_Delete( eventBuzzing );
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_IDLE;
         if( false == manualOperation ) {
@@ -491,6 +500,8 @@ void loop() {
         GUI_setBlinkScreenFrame( true );
         GUI_setBlinkTimeCurrent( false );    // stop blinking (continue heating)
 
+        buzzerActive = false;
+        BUZZ_Delete( eventBuzzing );
         heaterStateRequested = STATE_IDLE;
         heaterState = STATE_HEATING;
       }
