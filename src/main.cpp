@@ -8,12 +8,12 @@
 
 heater_state heaterState = STATE_IDLE;
 heater_state heaterStateRequested = STATE_IDLE;
-event_state eventState = EVENT_STATE_IDLE;
+event_state specialEventState = EVENT_STATE_IDLE;
 unsigned long currentTime, lastCurrentTime, next1S, next100mS, eventHandlingStart;
 static uint32_t targetHeatingTime;    // in miliseconds
 static uint16_t targetHeatingTemp;
-static int32_t eventCode;
-static uint32_t eventValue;
+static int32_t specialEventCode;
+static uint32_t specialEventValue;
 static uint32_t eventBuzzing;
 static bakeName *bakeNames = NULL;
 static uint32_t bakeCount;
@@ -79,8 +79,8 @@ static void bakePickup( uint32_t idx, bool longPress ) {
 
     targetHeatingTime = 0;
     specialEvent = false;
-    eventCode = 0;
-    eventValue = 0;
+    specialEventCode = 0;
+    specialEventValue = 0;
 
     targetHeatingTemp = (uint16_t)CONF_getBakeTemp( bakeIdx, bakeStep );
 
@@ -90,8 +90,8 @@ static void bakePickup( uint32_t idx, bool longPress ) {
     } else if( 0 > tmp_targetHeatingTime ) {  // special case: first step is an event
       specialEvent = true;
       targetHeatingTemp = 0;
-      eventCode = tmp_targetHeatingTime;
-      eventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
+      specialEventCode = tmp_targetHeatingTime;
+      specialEventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
     } else {
       targetHeatingTemp = 0;
       Serial.printf( "CONTROLLER(bakePickup): Bake item incorrect!\n" );
@@ -247,8 +247,8 @@ static void heatingDoneHandle() {
     Serial.printf("Handling next step (time=%d)\n", tmp_targetHeatingTime );
   }
   specialEvent = false;
-  eventCode = 0;
-  eventValue = 0;
+  specialEventCode = 0;
+  specialEventValue = 0;
 
   if( 0 == tmp_targetHeatingTime ) {  // no next step, finish heating process
     BUZZ_Add( 0, 1000, 200, 5 );
@@ -262,8 +262,8 @@ static void heatingDoneHandle() {
     specialEvent = true;
     targetHeatingTime = 0;
     targetHeatingTemp = 0;
-    eventCode = tmp_targetHeatingTime;
-    eventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
+    specialEventCode = tmp_targetHeatingTime;
+    specialEventValue = CONF_getBakeTemp( bakeIdx, bakeStep );   // temp has different meaning in special event
   }
 }
 
@@ -362,7 +362,6 @@ void loop() {
       timeRemaining = MM_SS_TO_HH_MM( timeRemaining );
     }
 
-    OTA_LogWrite( timeRemaining );
     GUI_SetCurrentTemp( (uint16_t)currentTemp );
     GUI_SetCurrentTime( timeRemaining );
     GUI_setPowerBar( power );
@@ -380,10 +379,10 @@ void loop() {
     case STATE_IDLE: {
       // check against started heating
       if( STATE_START_REQUESTED == heaterStateRequested ) { // in STATE_IDLE only STATE_START_REQUESTED allowed
-        // Serial.printf("START: specialEvent=%d, eventCode=%d, eventValue=%d\n", (int)specialEvent, eventCode, eventValue );
+        // Serial.printf("START: specialEvent=%d, specialEventCode=%d, specialEventValue=%d\n", (int)specialEvent, specialEventCode, specialEventValue );
         if( specialEvent ) {      // special case: first step is an event
           specialEvent = false;
-          eventState = EVENT_STATE_BEGIN;
+          specialEventState = EVENT_STATE_BEGIN;
           heaterState = STATE_SPECIAL_EVENT;
           eventHandlingStart = currentTime;
         }
@@ -465,7 +464,7 @@ void loop() {
       }
       else if( specialEvent ) {
         specialEvent = false;
-        eventState = EVENT_STATE_BEGIN;
+        specialEventState = EVENT_STATE_BEGIN;
         heaterState = STATE_SPECIAL_EVENT;
         eventHandlingStart = currentTime;
       }
@@ -498,15 +497,15 @@ void loop() {
       break;
     }
     case STATE_SPECIAL_EVENT: {
-      switch( eventCode ) {
+      switch( specialEventCode ) {
         case EVENT_PREHEATING: {
           static bool targetTempReached;
 
-          switch( eventState ) {
+          switch( specialEventState ) {
             case EVENT_STATE_BEGIN: {
               Serial.println( "Handle EVENT_PREHEATING..." );
 
-              targetHeatingTemp = eventValue;
+              targetHeatingTemp = specialEventValue;
               if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
                 targetHeatingTemp = MAX_ALLOWED_TEMP;
               }
@@ -528,7 +527,7 @@ void loop() {
 
               targetTempReached = false;
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_PREHEATING );
-              eventState = EVENT_STATE_HANDLING;
+              specialEventState = EVENT_STATE_HANDLING;
 
               break;
             }
@@ -537,10 +536,10 @@ void loop() {
                 Serial.println( "...and go to STOP immediately" );
                 BUZZ_Delete( eventBuzzing );
                 heaterState = STATE_HEATING;    // preheating will be stopped in next cycle
-                eventState = EVENT_STATE_IDLE;
+                specialEventState = EVENT_STATE_IDLE;
               }
               else if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {  // CONTINUE was pressed
-                eventState = EVENT_STATE_END;
+                specialEventState = EVENT_STATE_END;
               }
 
               // target temp reached
@@ -563,7 +562,7 @@ void loop() {
 
               heaterStateRequested = STATE_IDLE;
               heaterState = STATE_HEATING;
-              eventState = EVENT_STATE_IDLE;
+              specialEventState = EVENT_STATE_IDLE;
               heatingDoneHandle();        // go to next step
 
               break;
@@ -572,11 +571,11 @@ void loop() {
           break;
         }
         case EVENT_PAUSE: {
-          switch( eventState ) {
+          switch( specialEventState ) {
             case EVENT_STATE_BEGIN: {
               Serial.println( "Handle EVENT_PAUSE..." );
 
-              targetHeatingTemp = eventValue;
+              targetHeatingTemp = specialEventValue;
               if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
                 targetHeatingTemp = MAX_ALLOWED_TEMP;
               }
@@ -597,19 +596,19 @@ void loop() {
               GUI_setBlinkTimeCurrent( true );        // indicate we're in pause mode
 
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_PAUSE );
-              eventState = EVENT_STATE_HANDLING;
+              specialEventState = EVENT_STATE_HANDLING;
 
               break;
             }
             case EVENT_STATE_HANDLING: {
               if( STATE_PAUSE_REQUESTED == heaterStateRequested ) {
-                eventState = EVENT_STATE_END;
+                specialEventState = EVENT_STATE_END;
               }
               else if( STATE_STOP_REQUESTED == heaterStateRequested ) {
                 Serial.println( "...and go to STOP immediately" );
                 BUZZ_Delete( eventBuzzing );
                 heaterState = STATE_HEATING;
-                eventState = EVENT_STATE_IDLE;
+                specialEventState = EVENT_STATE_IDLE;
               }
 
               break;
@@ -626,7 +625,7 @@ void loop() {
 
               heaterStateRequested = STATE_IDLE;
               heaterState = STATE_HEATING;
-              eventState = EVENT_STATE_IDLE;
+              specialEventState = EVENT_STATE_IDLE;
               heatingDoneHandle();        // go to next step
 
               break;
@@ -642,7 +641,7 @@ void loop() {
           break;
         }
         case EVENT_END: {
-          switch( eventState ) {
+          switch( specialEventState ) {
             case EVENT_STATE_BEGIN: {
               Serial.println( "Handle EVENT_END..." );
 
@@ -650,7 +649,7 @@ void loop() {
               HEATER_stop();
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_END );
               eventHandlingStart = currentTime;
-              eventState = EVENT_STATE_HANDLING;
+              specialEventState = EVENT_STATE_HANDLING;
 
               break;
             }
@@ -666,7 +665,7 @@ void loop() {
               }
 
               if( STATE_STOP_REQUESTED == heaterStateRequested ) {
-                eventState = EVENT_STATE_END;
+                specialEventState = EVENT_STATE_END;
               }
 
               break;
@@ -682,7 +681,7 @@ void loop() {
 
               heaterStateRequested = STATE_IDLE;
               heaterState = STATE_IDLE;
-              eventState = EVENT_STATE_IDLE;
+              specialEventState = EVENT_STATE_IDLE;
               bakePickup( bakeIdx, false );       // prepare for next round
 
               break;
@@ -693,7 +692,7 @@ void loop() {
         case EVENT_TIMER: {
           Serial.println( "Handle EVENT_TIMER..." );
 
-          targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( eventValue );
+          targetHeatingTime = (uint32_t)SECONDS_TO_MILISECONDS( specialEventValue );
           if( MAX_ALLOWED_TIME < targetHeatingTime ) {
             targetHeatingTime = MAX_ALLOWED_TIME;
           }
@@ -716,7 +715,7 @@ void loop() {
           break;
         }
         default: {
-          Serial.printf( "Invalid event code: %d\n", eventCode );
+          Serial.printf( "Invalid event code: %d\n", specialEventCode );
           BUZZ_Add( 5000 );
           break;
         }
@@ -732,7 +731,7 @@ void loop() {
   if( heatingDoneTriggered ) {
     // special case: time's up for EVENT_PAUSE/EVENT_PREHEATING >> go to stop process
     if( STATE_SPECIAL_EVENT == heaterState
-    && ( EVENT_PREHEATING == eventCode || EVENT_PAUSE == eventCode ) ) {
+    && ( EVENT_PREHEATING == specialEventCode || EVENT_PAUSE == specialEventCode ) ) {
       Serial.println( "Time's up for PAUSE/PREHEATING event! Go to STOP." );
       BUZZ_Delete( eventBuzzing );
       BUZZ_Add( 500, 500, 200, 10 );
