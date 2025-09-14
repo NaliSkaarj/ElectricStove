@@ -3,7 +3,7 @@
 
 #define PORT                23     // port for telnet connections
 #define OTA_HOST_NAME       "ElectricStove"
-#define OTA_STACK_SIZE      2048// number of words, at 1965 OTA OK, at 1964 OTA failing sometimes
+#define OTA_STACK_SIZE      4096// number of words, at 1965 OTA OK, at 1964 OTA failing sometimes
 #define OTA_TASK_PRIORITY   1
 
 typedef void (* otaActiveCb)( bool );

@@ -2,6 +2,7 @@
 #include "myOTA.h"
 #include <ArduinoOTA.h>
 #include "credentials.h"
+#include "config.h"
 
 static TaskHandle_t       taskHandle = NULL;
 static StaticTask_t       taskTCB;
@@ -14,6 +15,11 @@ static otaActiveCb otaActiveCB = NULL;
 
 WiFiServer server( PORT ); // server port to listen on
 WiFiClient client;
+
+static void commandHandle( uint8_t*, int );
+static void showCurveList();
+static void showOneCurve( int );
+static void addCurveToList();
 
 static void WiFiEvent( WiFiEvent_t event, WiFiEventInfo_t info ) {
   if ( event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED ) {
@@ -76,10 +82,20 @@ static void otaHandle() {
     }
     //check clients for data
     if ( client && client.connected() ) {
-      if ( client.available() ) {
-        //get data from the telnet client and push it to the UART
-        while ( client.available() ) {
-          Serial.write( client.read() );
+      String clientBuffer = "";
+
+      while( client.available() ) {
+        char c = client.read();
+        Serial.write( c );
+
+        if( c == '\n' ) {
+          clientBuffer.trim();      // usuń spacje i CR/LF
+          if( clientBuffer.length() > 0 ) {
+            commandHandle( (uint8_t*)clientBuffer.c_str(), clientBuffer.length() );
+          }
+          clientBuffer = "";      //reset bufora
+        } else {
+          clientBuffer += c;      //dopisujemy znak
         }
       }
     } else {
@@ -88,7 +104,7 @@ static void otaHandle() {
       }
     }
     //check UART for data
-    if ( Serial.available() ) {
+    if( Serial.available() ) {
       size_t len = Serial.available();
       uint8_t sbuf[len];
       Serial.readBytes( sbuf, len );
@@ -114,6 +130,77 @@ static void otaHandle() {
       otaActiveCB( initialized );
     }
   }
+}
+
+static void commandHandle( uint8_t* buf, int len ){
+  // convert buffer to string (assuming that's an ASCII)
+  String input = "";
+  for( int i = 0; i < len; i++ ) {
+    if( buf[i] == '\r' || buf[i] == '\n' ) break; // ignore enter
+    input += (char)buf[i];
+  }
+
+  input.toLowerCase(); // case-insensitive commands
+
+  // divide to command & argument
+  int spaceIndex = input.indexOf(' ');
+  String cmd = (spaceIndex == -1) ? input : input.substring(0, spaceIndex);
+  String arg = (spaceIndex == -1) ? ""    : input.substring(spaceIndex + 1);
+
+  if( cmd == "help" ) {
+    client.println( "Dostępne komendy: help, list, show <index>" );
+  } else if( cmd == "list" ) {
+    showCurveList();
+  } else if( cmd == "show" ) {
+    showOneCurve( arg.toInt() );
+  } else {
+    client.print( "Nieznana komenda: " );
+    client.write( cmd.c_str(), cmd.length() );
+    client.println();
+  }
+}
+
+static void showCurveList() {
+  bakeName *bakeNames = NULL;
+  uint32_t bakeCount;
+  char buffer[ BAKE_NAME_LENGTH+5 ];  // additional 5 bytes for 3 digits number and 2 static chars ": "
+
+  CONF_getBakeNames( &bakeNames, &bakeCount );
+  client.println( "Lista krzywych:" );
+
+  for( int x=0; x<bakeCount; x++ ) {
+    snprintf( buffer, sizeof(buffer), "%d: %s", (x+1), bakeNames[x] );
+    client.println( buffer );
+  }
+  free( bakeNames );
+}
+
+static void showOneCurve( int idx ) {
+  if( idx <= 0 ) {
+    client.println( "Wrong index" );
+    return;
+  }
+
+  char * bakeName = CONF_getBakeName( idx-1 );
+  if( 0 == bakeName ) {
+    client.println( "Wrong index" );
+    return;
+  }
+
+  for( int i = 0; i < BAKE_NAME_LENGTH; i++ ) {
+    if( bakeName[i] == '\0' ) break;
+    client.write( bakeName[i] );
+  }
+  client.println( ":" );
+
+  char * data = CONF_getBakeSerializedData( idx-1 );
+  client.println( data );
+
+  free( data );
+}
+
+static void addCurveToList() {
+  ;
 }
 
 static void vTaskOTA( void * pvParameters ) {

@@ -339,6 +339,30 @@ char * CONF_getBakeName( uint32_t idx ) {
   return bakeList[ idx ].name;
 }
 
+char * CONF_getBakeSerializedData( uint32_t idx ) {
+  if( NULL == bakeList || bakesCount <= idx ) {
+    return NULL;
+  }
+
+  JsonDocument doc;
+
+  doc["name"] = bakeList[idx].name;
+  doc["stepCount"] = bakeList[idx].stepCount;
+  for( int y=0; y<bakeList[idx].stepCount; y++ ) {
+    doc["step"][y]["temp"] = bakeList[idx].step[y].temp;
+    doc["step"][y]["time"] = bakeList[idx].step[y].time;
+  }
+
+  String output;
+  serializeJson( doc, output );
+  Serial.printf( "Data to be saved: %s\n", output.c_str() );
+
+  char* result = (char*)malloc( output.length() + 1 );
+  strcpy( result, output.c_str() );
+
+  return result;
+}
+
 bool CONF_removeBakes( uint8_t list[], uint32_t count ) {
   bool retVal = false;
 
