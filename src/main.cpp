@@ -36,6 +36,7 @@ static setting_t settings[] = {     // preserve order according to optionType en
 static void updateTime( uint32_t time ) {
   targetHeatingTime = time;
   manualOperation = true;
+  specialEvent = false;
 
   if( MAX_ALLOWED_TIME < targetHeatingTime ) {
     targetHeatingTime = MAX_ALLOWED_TIME;
@@ -47,6 +48,7 @@ static void updateTime( uint32_t time ) {
 static void updateTemp( uint16_t temp ) {
   targetHeatingTemp = temp;
   manualOperation = true;
+  specialEvent = false;
 
   if( MAX_ALLOWED_TEMP < targetHeatingTemp ) {
     targetHeatingTemp = MAX_ALLOWED_TEMP;
