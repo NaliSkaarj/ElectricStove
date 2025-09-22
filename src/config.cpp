@@ -339,9 +339,9 @@ char * CONF_getBakeName( uint32_t idx ) {
   return bakeList[ idx ].name;
 }
 
-char * CONF_getBakeSerializedData( uint32_t idx ) {
+bool CONF_getBakeSerializedData( uint32_t idx, char * buff, uint32_t len ) {
   if( NULL == bakeList || bakesCount <= idx ) {
-    return NULL;
+    return false;
   }
 
   JsonDocument doc;
@@ -355,12 +355,9 @@ char * CONF_getBakeSerializedData( uint32_t idx ) {
 
   String output;
   serializeJson( doc, output );
-  Serial.printf( "Data to be saved: %s\n", output.c_str() );
+  output.toCharArray( buff, len-1 );
 
-  char* result = (char*)malloc( output.length() + 1 );
-  strcpy( result, output.c_str() );
-
-  return result;
+  return true;
 }
 
 bool CONF_removeBakes( uint8_t list[], uint32_t count ) {

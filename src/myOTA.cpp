@@ -176,6 +176,11 @@ static void showCurveList() {
 }
 
 static void showOneCurve( int idx ) {
+  // 34B for static strings like: '"name":"","stepCount":10,"step":[]'
+  // 25B for one step data like: '{"temp":230,"time":1234},'
+  // 1B for NULL terminated string
+  char buffer[ 34 + BAKE_NAME_LENGTH + BAKE_MAX_STEPS * 25 + 1];  // 349B total
+
   if( idx <= 0 ) {
     client.println( "Wrong index" );
     return;
@@ -193,10 +198,12 @@ static void showOneCurve( int idx ) {
   }
   client.println( ":" );
 
-  char * data = CONF_getBakeSerializedData( idx-1 );
-  client.println( data );
-
-  free( data );
+  if( CONF_getBakeSerializedData( idx-1, buffer, sizeof(buffer) ) ) {
+    client.println( buffer );
+  }
+  else {
+    client.println( "Couldn't get data" );
+  }
 }
 
 static void addCurveToList() {

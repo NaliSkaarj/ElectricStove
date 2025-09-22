@@ -89,12 +89,14 @@ uint32_t CONF_getBakeStepCount( uint32_t idx );
 char * CONF_getBakeName( uint32_t idx );
 
 /**
- * Get specified bake's data as serialized string
+ * Get specified bake's data as serialized string (NULL terminated)
  * idx      - index for particular bake on the list (count from 0)
+ * buff     - buffer for data
+ * len      - buffer length
  * 
- * return   - pointer to name (NULL terminated), need to be free()
+ * return   - false if any error
  */
-char * CONF_getBakeSerializedData( uint32_t idx );
+bool CONF_getBakeSerializedData( uint32_t idx, char * buff, uint32_t len );
 
 /**
  * Remove bakes from the list
