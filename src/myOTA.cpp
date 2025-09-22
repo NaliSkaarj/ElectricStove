@@ -19,7 +19,7 @@ WiFiClient client;
 static void commandHandle( uint8_t*, int );
 static void showCurveList();
 static void showOneCurve( int );
-static void addCurveToList();
+static void addCurveToList( String data );
 
 static void WiFiEvent( WiFiEvent_t event, WiFiEventInfo_t info ) {
   if ( event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED ) {
@@ -78,6 +78,8 @@ static void otaHandle() {
         }
         Serial.print( "New client: " );
         Serial.println( client.remoteIP() );
+        client.println( "Welcome to ElectricStove!" );
+        client.println( "Send 'help' for available commands." );
       }
     }
     //check clients for data
@@ -140,19 +142,24 @@ static void commandHandle( uint8_t* buf, int len ){
     input += (char)buf[i];
   }
 
-  input.toLowerCase(); // case-insensitive commands
-
   // divide to command & argument
   int spaceIndex = input.indexOf(' ');
   String cmd = (spaceIndex == -1) ? input : input.substring(0, spaceIndex);
   String arg = (spaceIndex == -1) ? ""    : input.substring(spaceIndex + 1);
 
+  cmd.toLowerCase(); // case-insensitive commands
+
   if( cmd == "help" ) {
-    client.println( "Dostępne komendy: help, list, show <index>" );
+    client.println( "Dostępne komendy: help, list, show <index>, add <string>, quit" );
   } else if( cmd == "list" ) {
     showCurveList();
   } else if( cmd == "show" ) {
     showOneCurve( arg.toInt() );
+  } else if( cmd == "add" ) {
+    arg.trim();
+    addCurveToList( arg );
+  } else if( cmd == "quit" ) {
+    client.stop();
   } else {
     client.print( "Nieznana komenda: " );
     client.write( cmd.c_str(), cmd.length() );
@@ -206,8 +213,14 @@ static void showOneCurve( int idx ) {
   }
 }
 
-static void addCurveToList() {
-  ;
+static void addCurveToList( String data ) {
+  if( NULL == data ) {
+    client.println( "No data to handle" );
+    return;
+  }
+
+  client.print( "RAW data: " );
+  client.println( data );
 }
 
 static void vTaskOTA( void * pvParameters ) {
