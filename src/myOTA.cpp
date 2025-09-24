@@ -148,9 +148,10 @@ static void commandHandle( uint8_t* buf, int len ){
   String arg = (spaceIndex == -1) ? ""    : input.substring(spaceIndex + 1);
 
   cmd.toLowerCase(); // case-insensitive commands
+  cmd.trim();
 
   if( cmd == "help" ) {
-    client.println( "Dostępne komendy: help, list, show <index>, add <string>, quit" );
+    client.println( "Dostępne komendy: help, list, show <index>, add <string>, save, quit, restart" );
   } else if( cmd == "list" ) {
     showCurveList();
   } else if( cmd == "show" ) {
@@ -158,6 +159,13 @@ static void commandHandle( uint8_t* buf, int len ){
   } else if( cmd == "add" ) {
     arg.trim();
     addCurveToList( arg );
+  } else if( cmd == "save" ) {
+    CONF_storeBakeList();
+    client.println( "Bake curve list saved." );
+  } else if( cmd == "restart" ) {
+    client.println( "Restarting ESP32..." );
+    client.stop();
+    esp_restart();
   } else if( cmd == "quit" ) {
     client.stop();
   } else {
@@ -219,8 +227,11 @@ static void addCurveToList( String data ) {
     return;
   }
 
-  client.print( "RAW data: " );
-  client.println( data );
+  if( CONF_addBakeFromSerializedData( (char *)data.c_str() ) ) {
+    client.println( "Bake curve added." );
+  } else {
+    client.println( "Error: bake curve not added." );
+  }
 }
 
 static void vTaskOTA( void * pvParameters ) {

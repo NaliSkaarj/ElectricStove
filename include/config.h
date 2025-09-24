@@ -2,7 +2,7 @@
 #define _CONFIG_H_
 
 #include "SPI.h"
-#include "WString.h"
+// #include "WString.h"
 
 // #define BAKES_COUNT       20
 #define BAKE_NAME_LENGTH    64
@@ -97,6 +97,14 @@ char * CONF_getBakeName( uint32_t idx );
  * return   - false if any error
  */
 bool CONF_getBakeSerializedData( uint32_t idx, char * buff, uint32_t len );
+
+/**
+ * Add bake curve to the list
+ * data     - JSON serialized data
+ * 
+ * return   - false if any error
+ */
+bool CONF_addBakeFromSerializedData( char * data );
 
 /**
  * Remove bakes from the list

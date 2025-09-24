@@ -6,6 +6,7 @@
 #include "esp_err.h"
 #include "esp_spiffs.h"
 #include <sys/stat.h>
+#include "myOTA.h"
 
 #define EEPROM_SIZE     1024  // 1kB from eeprom(flash) used
 
@@ -356,6 +357,52 @@ bool CONF_getBakeSerializedData( uint32_t idx, char * buff, uint32_t len ) {
   String output;
   serializeJson( doc, output );
   output.toCharArray( buff, len-1 );
+
+  return true;
+}
+
+bool CONF_addBakeFromSerializedData( char * data ) {
+  bake_t * tmpBakeList;
+  uint32_t tmpBakesCount = bakesCount + 1;
+  JsonDocument doc;
+
+  // example data:
+  // {"name":"","stepCount":0,"step":[]}
+  // {"name":"bake 1","stepCount":2,"step":[{"temp":1,"time":-1},{"temp":2,"time":60}]}
+  // {"name":"Wyrastanie ciasta ąćęłńóśżź","stepCount":1,"step":[{"temp":35,"time":7200}]}
+
+  // convert JSON to data object
+  deserializeJson( doc, data );
+
+  if( !doc["name"].is<const char *>() || !doc["stepCount"].is<uint32_t>() || !doc["step"].is<JsonArray>() ) {
+    OTA_LogWrite( "Missing required keys or incorrect keys type.\n" );
+    OTA_LogWrite( "Example: add {\"name\":\"bake1\",\"stepCount\":2,\"step\":[{\"temp\":1,\"time\":-1},{\"temp\":2,\"time\":60}]}\n" );
+    return false;
+  }
+
+  // allocate memory for new BakeList (including size of current bakeList)
+  tmpBakeList = (bake_t *)malloc( sizeof( bake_t ) * tmpBakesCount );
+  if( NULL == tmpBakeList ) {
+    Serial.println( "CONF(addBakeFromSerializedData): malloc failed!" );
+    return false;
+  }
+
+  // copy old list positions to the newly created list
+  memcpy( tmpBakeList, bakeList, sizeof( bake_t ) * bakesCount );
+
+  // add new position at the end of new list
+  for( int i = bakesCount; i < tmpBakesCount; i++ ) {
+    strlcpy( tmpBakeList[i].name, doc["name"], sizeof( tmpBakeList[i].name ) );
+    tmpBakeList[i].stepCount = doc["stepCount"];
+    for( int s = 0; s < tmpBakeList[i].stepCount; s++ ) {
+      tmpBakeList[i].step[s].temp = doc["step"][s]["temp"];
+      tmpBakeList[i].step[s].time = doc["step"][s]["time"];
+    }
+  }
+
+  free( bakeList );       // delete old bake list
+  bakeList = tmpBakeList; // remember new list
+  bakesCount = tmpBakesCount;
 
   return true;
 }
