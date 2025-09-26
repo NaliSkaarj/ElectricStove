@@ -20,6 +20,7 @@ static void commandHandle( uint8_t*, int );
 static void showCurveList();
 static void showOneCurve( int );
 static void addCurveToList( String data );
+static void delCurveFromList( int idx );
 
 static void WiFiEvent( WiFiEvent_t event, WiFiEventInfo_t info ) {
   if ( event == ARDUINO_EVENT_WIFI_STA_DISCONNECTED ) {
@@ -151,7 +152,7 @@ static void commandHandle( uint8_t* buf, int len ){
   cmd.trim();
 
   if( cmd == "help" ) {
-    client.println( "Dostępne komendy: help, list, show <index>, add <string>, save, quit, restart" );
+    client.println( "Dostępne komendy: help, list, show <index>, add <string>, del <index>, save, quit, restart" );
   } else if( cmd == "list" ) {
     showCurveList();
   } else if( cmd == "show" ) {
@@ -159,6 +160,8 @@ static void commandHandle( uint8_t* buf, int len ){
   } else if( cmd == "add" ) {
     arg.trim();
     addCurveToList( arg );
+  } else if( cmd == "del" ) {
+    delCurveFromList( arg.toInt() );
   } else if( cmd == "save" ) {
     CONF_storeBakeList();
     client.println( "Bake curve list saved." );
@@ -228,9 +231,24 @@ static void addCurveToList( String data ) {
   }
 
   if( CONF_addBakeFromSerializedData( (char *)data.c_str() ) ) {
-    client.println( "Bake curve added." );
+    client.println( "Bake curve added.\nDon't forget to 'save' changes." );
   } else {
     client.println( "Error: bake curve not added." );
+  }
+}
+
+static void delCurveFromList( int idx ) {
+  uint8_t arr[ 1 ] = { 0 };
+
+  if( idx <= 0 ) {
+    client.println( "Wrong index" );
+    return;
+  }
+
+  arr[0] = idx-1;
+
+  if( CONF_removeBakes( arr, 1 ) ) {
+    client.println( "Bake curve removed.\nDon't forget to 'save' changes." );
   }
 }
 
