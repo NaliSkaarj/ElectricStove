@@ -379,6 +379,13 @@ bool CONF_addBakeFromSerializedData( char * data ) {
     OTA_LogWrite( "Example: add {\"name\":\"bake1\",\"stepCount\":2,\"step\":[{\"temp\":1,\"time\":-1},{\"temp\":2,\"time\":60}]}\n" );
     return false;
   }
+  // check against correct number of items in array
+  JsonArray arr = doc["step"].as<JsonArray>();
+  uint32_t count = doc["stepCount"].as<uint32_t>();
+  if( count > arr.size() ) {
+    OTA_LogWrite( "Insufficient steps provided.\n" );
+    return false;
+  }
 
   // allocate memory for new BakeList (including size of current bakeList)
   tmpBakeList = (bake_t *)malloc( sizeof( bake_t ) * tmpBakesCount );
