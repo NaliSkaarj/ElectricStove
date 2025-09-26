@@ -152,7 +152,9 @@ static void commandHandle( uint8_t* buf, int len ){
   cmd.trim();
 
   if( cmd == "help" ) {
-    client.println( "Dostępne komendy: help, list, show <index>, add <string>, del <index>, save, quit, restart" );
+    client.println( "Dostępne komendy:\n help - show this info\n list - show list of bakes names\n show <index> - show whole bake curve data" );
+    client.println( " add <string> - add new bake curve to the list\n del <index> - delete one bake curve from the list" );
+    client.println( " save - save changes\n quit - close connection\n restart - restart firmware" );
   } else if( cmd == "list" ) {
     showCurveList();
   } else if( cmd == "show" ) {
@@ -184,7 +186,7 @@ static void showCurveList() {
   char buffer[ BAKE_NAME_LENGTH+5 ];  // additional 5 bytes for 3 digits number and 2 static chars ": "
 
   CONF_getBakeNames( &bakeNames, &bakeCount );
-  client.println( "Lista krzywych:" );
+  client.println( "Lista krzywych pieczenia:" );
 
   for( int x=0; x<bakeCount; x++ ) {
     snprintf( buffer, sizeof(buffer), "%d: %s", (x+1), bakeNames[x] );
