@@ -270,7 +270,7 @@ void CONF_setOptionBool( int32_t option, bool value ) {
   }
 
   if( EEPROM.begin( EEPROM_SIZE ) ) {
-    EEPROM.writeInt( option, value );
+    EEPROM.writeBool( option, value );
     EEPROM.commit();
     EEPROM.end();
   }
@@ -282,7 +282,7 @@ void CONF_setOptionInt( int32_t option, int32_t value ) {
   }
 
   if( EEPROM.begin( EEPROM_SIZE ) ) {
-    EEPROM.writeBool( option, value );
+    EEPROM.writeInt( option, value );
     EEPROM.commit();
     EEPROM.end();
   }
