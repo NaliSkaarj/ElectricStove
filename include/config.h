@@ -8,6 +8,7 @@
 #define BAKE_NAME_LENGTH    64
 #define BAKE_FILE_NAME      "/bakes.txt"
 #define BAKE_MAX_STEPS      10    // how much steps can be in one 'bakes curve'
+#define HEATING_IN_PROGRESS 10    // WARNING: this address cannot collide with others used in gui.h (@ optionType_t)
 
 typedef char bakeName[ BAKE_NAME_LENGTH ];
 

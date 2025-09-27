@@ -328,6 +328,12 @@ void setup() {
   settings[ OPTION_SAVE ].optionCallback = storeSettings;
   GUI_optionsPopulate( settings, sizeof(settings)/sizeof(setting_t) );
 
+  // check against unexpected restart during heating process
+  if( CONF_getOptionBool( HEATING_IN_PROGRESS ) ) {
+    BUZZ_Add( 100, 100, 50 );
+    CONF_setOptionBool( HEATING_IN_PROGRESS, false );
+  }
+
   currentTime = next1S = millis();
   lastCurrentTime = currentTime - 10;   // first call with 10ms
 }
@@ -405,6 +411,7 @@ void loop() {
           HEATER_setTime( targetHeatingTime );
           HEATER_setTemperature( (uint16_t)targetHeatingTemp );
           HEATER_start();
+          CONF_setOptionBool( HEATING_IN_PROGRESS, true );
 
           BUZZ_Add( 400 );
           heaterState = STATE_HEATING;
@@ -423,6 +430,7 @@ void loop() {
     case STATE_HEATING: {
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
+        CONF_setOptionBool( HEATING_IN_PROGRESS, false );
         GUI_setOperationButtons( BUTTONS_START );
         GUI_setTimeTempChangeAllowed( true );
         GUI_setBlinkScreenFrame( false );
@@ -451,6 +459,7 @@ void loop() {
         HEATER_setTime( targetHeatingTime );
         HEATER_setTemperature( (uint16_t)targetHeatingTemp );
         HEATER_start();
+        CONF_setOptionBool( HEATING_IN_PROGRESS, true );
 
         heaterStateRequested = STATE_IDLE;
       }
@@ -482,6 +491,7 @@ void loop() {
 
       if( STATE_STOP_REQUESTED == heaterStateRequested ) {
         HEATER_stop();
+        CONF_setOptionBool( HEATING_IN_PROGRESS, false );
         GUI_setOperationButtons( BUTTONS_START );
         GUI_setTimeTempChangeAllowed( true );
         GUI_setBlinkScreenFrame( false );
@@ -532,6 +542,7 @@ void loop() {
               HEATER_setTime( EVENT_PREHEATING_MAX_TIME );
               HEATER_setTemperature( (uint16_t)targetHeatingTemp );
               HEATER_start();
+              CONF_setOptionBool( HEATING_IN_PROGRESS, true );
 
               GUI_setOperationButtons( BUTTONS_STOP );
               GUI_setTimeTempChangeAllowed( false );
@@ -572,6 +583,7 @@ void loop() {
               GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
               BUZZ_Delete( eventBuzzing );
               HEATER_stop();
+              CONF_setOptionBool( HEATING_IN_PROGRESS, false );
 
               heaterStateRequested = STATE_IDLE;
               heaterState = STATE_HEATING;
@@ -602,6 +614,7 @@ void loop() {
               HEATER_setTime( EVENT_PAUSE_MAX_TIME );
               HEATER_setTemperature( (uint16_t)targetHeatingTemp );
               HEATER_start();
+              CONF_setOptionBool( HEATING_IN_PROGRESS, true );
 
               GUI_setOperationButtons( BUTTONS_CONTINUE_STOP );
               GUI_setTimeTempChangeAllowed( false );
@@ -630,6 +643,7 @@ void loop() {
               Serial.println( "...and go to next step" );
               BUZZ_Delete( eventBuzzing );
               HEATER_stop();
+              CONF_setOptionBool( HEATING_IN_PROGRESS, false );
 
               GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
               GUI_setTimeTempChangeAllowed( false );
@@ -660,6 +674,7 @@ void loop() {
 
               GUI_setOperationButtons( BUTTONS_STOP );
               HEATER_stop();
+              CONF_setOptionBool( HEATING_IN_PROGRESS, false );
               eventBuzzing = BUZZ_Add( BUZZ_EVENT_END );
               eventHandlingStart = currentTime;
               specialEventState = EVENT_STATE_HANDLING;
@@ -691,6 +706,7 @@ void loop() {
               GUI_setTimeTempChangeAllowed( true );
               GUI_setBlinkScreenFrame( false );
               GUI_setBlinkTimeCurrent( false );
+              CONF_setOptionBool( HEATING_IN_PROGRESS, false );
 
               heaterStateRequested = STATE_IDLE;
               heaterState = STATE_IDLE;
@@ -716,6 +732,7 @@ void loop() {
           HEATER_setTime( targetHeatingTime );
           HEATER_setTemperature( 0 );
           HEATER_start();
+          CONF_setOptionBool( HEATING_IN_PROGRESS, true );
 
           GUI_setOperationButtons( BUTTONS_PAUSE_STOP );
           GUI_setTimeTempChangeAllowed( false );
